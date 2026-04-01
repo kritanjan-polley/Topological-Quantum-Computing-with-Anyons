@@ -56,18 +56,6 @@ function exact_radial_correlation()
     t_total = 100.0
     time_array = range(0.0, t_total, step=dt)
 
-    # C_t = ComplexF64[]
-    # for t in time_array
-    #     corr = 0.0 + 0.0im
-    #     for a in eachindex(c0)
-    #         phase_a = exp(im * E0[a] * t)
-    #         for n in eachindex(d1)
-    #             phase_n = exp(-im * E1[n] * t)
-    #             corr += conj(c0[a]) * phase_a * D[n, a] * phase_n * d1[n]
-    #         end
-    #     end
-    #     push!(C_t, corr)
-    # end
 
     T_row = reshape(time_array, 1, :)
     Mat_A = conj.(c0) .* exp.(im .* E0 .* T_row)
