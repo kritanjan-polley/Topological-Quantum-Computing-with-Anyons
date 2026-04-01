@@ -51,9 +51,10 @@ titlesize = 20
 figure_size = (700, 500)
 const my_colors = cgrad(:glasbey_bw_minc_20_maxl_70_n256, 256, categorical=true)
 
-const pic_dir = "/Users/kritanjanpolley/Desktop/pic_dir"
+const pic_dir = joinpath(pwd(), "pic_dir")
 const data_dir = joinpath(pwd(), "data_dir")
 mkpath(data_dir)
+mkpath(pic_dir)
 
 const custom_theme::Attributes = Theme(
     Figure=(size=figure_size,),
