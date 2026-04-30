@@ -381,9 +381,26 @@ function simplify_path(path::Vector{Symbol})
                 pop!(s)
             else
                 push!(s, x)
+                ## s^5 = I
                 if length(s) >= 5
                     if s[end] == s[end-1] == s[end-2] == s[end-3] == s[end-4]
                         resize!(s, length(s) - 5)
+                    end
+                end
+                if length(s) >= 4
+                    if s[end] == s[end-1] == s[end-2] == s[end-3]
+                        val = s[end]
+                        resize!(s, length(s) - 4)
+                        push!(s, inv_map_sym[val])
+                    end
+                end
+                if length(s) >= 3
+                    if s[end] == s[end-1] == s[end-2]
+                        val = s[end]
+                        inv_val = inv_map_sym[val]
+                        resize!(s, length(s) - 3)
+                        push!(s, inv_val)
+                        push!(s, inv_val)
                     end
                 end
             end
