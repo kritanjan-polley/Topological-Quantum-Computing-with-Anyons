@@ -1,20 +1,18 @@
 using LinearAlgebra
 using Printf
-using DelimitedFiles
 using ITensorMPS
 using ITensors
-using CairoMakie
 
 include("functions.jl")
 using .functions
 
 start_time = time()
+data_dir = "data_dir"
 
-set_theme!(merge(theme_latexfonts(), custom_theme))
 @printf("Initial Peak: %.6f GB\n", get_peak_memory_bytes() / (1024^3))
 
 const kB = 1.0
-const tensor_cutoff = 1e-8
+const tensor_cutoff = 1e-7
 const max_bond_dim::Int64 = 128
 
 ITensors.op(::OpName"Z", ::SiteType"Site") = pauliZ
@@ -23,6 +21,12 @@ function star_to_chain(omegas, couplings)
     N = length(omegas)
     kappa = norm(couplings)
     v_n = couplings ./ kappa
+
+    if length(omegas) != length(couplings)
+        throw(ArgumentError(
+            "Frequency and coupling arrays must have same length!"
+            ))
+    end
 
     Omega = zeros(Float64, N)
     t = zeros(Float64, N - 1)
@@ -47,7 +51,7 @@ function star_to_chain(omegas, couplings)
 end
 
 function map_continuous_bath(J_func::Function, M_chain::Int, omega_max::Float64,
-    temperature::Float64; N_grid::Int=10001)
+    temperature::Float64; N_grid::Int=1001)
     d_omega = 2.0 * omega_max / N_grid
     omegas_dense = range(-omega_max + d_omega / 2, omega_max - d_omega / 2,
         length=N_grid)
@@ -68,17 +72,43 @@ function map_continuous_bath(J_func::Function, M_chain::Int, omega_max::Float64,
     return kappa, Omega_full[1:M_chain], t_full[1:M_chain-1]
 end
 
+function boson_operators(d::Int)
+    a = zeros(Float64, d, d)
+    for n in 1:(d-1)
+        a[n, n+1] = sqrt(n)
+    end
+    I_d = Matrix{Float64}(I, d, d)
+    adag = a'
+    N_op = adag * a .+ 0.5 * I_d
+    X_op = adag + a
+    return a, adag, N_op, X_op
+end
+
+function compile_local_unitary(U_exact::Matrix{ComplexF64}, db::ForwardDB,
+    sk_depth::Int)
+    N = size(U_exact, 1)
+    gates_list, D_exact = decompose_unitary(U_exact)
+    compiled_U = Matrix{ComplexF64}(I, N, N)
+
+    for (i, j, u_target) in reverse(gates_list)
+        u_approx, path = solovay_kitaev(u_target, sk_depth, db)
+        G_approx = embed(u_approx, N, i, j)
+        compiled_U = G_approx * compiled_U
+    end
+    return compiled_U * D_exact
+end
 
 function run_spin_boson_mps(J_func::Function, M::Int, omega_max::Float64,
     temperature::Float64, d::Int=4)
     epsilon = 1.0
-    J_tunn = 1.0
-    dt = 0.02
-    t_max = 5.0
-    sk_depth = 4
-    db = generate_database(12)
+    jval= 2.0
+    dt = 0.05
+    t_max = 8.0
 
-    println("Generating Orthogonal Polynomials for T=$(temperature) bath (M=$M modes)")
+    sk_depth = 10
+    db = generate_database(14)
+
+    println("Generating Orthogonal Polynomials T=$(temperature) bath (M=$M modes)")
     kappa, Omega, t_hop = map_continuous_bath(J_func, M, omega_max, temperature)
 
     sites = [Index(j == 1 ? 2 : d, "Site, n=$j") for j in 1:M+1]
@@ -100,7 +130,7 @@ function run_spin_boson_mps(J_func::Function, M::Int, omega_max::Float64,
         d2 = dim(s2)
 
         if j == 1
-            H_sys = epsilon * pauliZ + J_tunn * pauliX
+            H_sys = epsilon * pauliZ + jval* pauliX
             H_bond = kron(I_b, H_sys)
             H_bond += kappa * kron(X_b, pauliZ)
             H_bond += kron(Omega[1] * N_b, i2)
@@ -121,7 +151,6 @@ function run_spin_boson_mps(J_func::Function, M::Int, omega_max::Float64,
         push!(comp_half_gates, itensor(reshape(U_half_comp_mat, d1, d2, d1, d2), s1', s2', s1, s2))
         push!(comp_full_gates, itensor(reshape(U_full_comp_mat, d1, d2, d1, d2), s1', s2', s1, s2))
     end
-    @printf("Elapsed time (braiding): %.4f seconds\n", time() - start_time)
 
     exact_half_odd = exact_half_gates[1:2:end]
     exact_full_even = exact_full_gates[2:2:end]
@@ -137,9 +166,11 @@ function run_spin_boson_mps(J_func::Function, M::Int, omega_max::Float64,
     sz_t_exact = Float64[]
     sz_t_comp = Float64[]
 
-    println("Running MPS and braiding Evolution")
-    for t in time_array
-        # println(t)
+    println("Starting time evolution")
+
+    data_file = joinpath(data_dir, "check_spin_boson_model.txt")
+    io = open(data_file, "w")
+    for (idx, t) in enumerate(time_array)
         orthogonalize!(psi_exact, 1)
         orthogonalize!(psi_comp, 1)
 
@@ -155,43 +186,31 @@ function run_spin_boson_mps(J_func::Function, M::Int, omega_max::Float64,
         psi_comp = apply(comp_half_odd, psi_comp; cutoff=tensor_cutoff, maxdim=max_bond_dim)
         psi_comp = apply(comp_full_even, psi_comp; cutoff=tensor_cutoff, maxdim=max_bond_dim)
         psi_comp = apply(comp_half_odd, psi_comp; cutoff=tensor_cutoff, maxdim=max_bond_dim)
-    end
 
-    data_file = "check_spin_boson_model2.txt"
-    open(data_file, "w") do io
-        for i in eachindex(time_array)
-            @printf(io, "%.6e  %.10e  %.10e\n",
-                time_array[i], real(sz_t_exact[i]), real(sz_t_comp[i])
-            )
+        if mod(idx-1, 50) == 0
+            @printf("Time t = %10.4f after %10.4f seconds\n", t, time()-start_time)
         end
+
+        @printf(io, "%.6e  %.10e  %.10e\n",
+            t, real(sz_t_exact[idx]), real(sz_t_comp[idx])
+        )
     end
-
-    heom_data = readdlm("heom_spin_boson_model2.txt")
-
-    println("Plotting figure")
-    fig = Figure(size=(800, 400))
-    ax = Axis(fig[1, 1], xlabel=L"t", ylabel=L"\langle \sigma_z(t) \rangle")
-
-    lines!(ax, time_array, sz_t_exact, label="Exact TEBD", linewidth=2, linestyle=:dash)
-    lines!(ax, time_array, sz_t_comp, label="Compiled TEBD")
-    lines!(ax, heom_data[:, 1], heom_data[:, 2] .- heom_data[:, 3], label="HEOM", linewidth=1.5, linestyle=:dashdot)
-
-    axislegend(ax)
-    # display(fig)
-    fig
+    close(io)
 
     @printf("Memory at the end: %.6f GB\n", get_peak_memory_bytes() / (1024^3))
     @printf("It took: %.4f seconds\n", time() - start_time)
 end
 
 
-omega_c = 1.0
-lamda = 1.0 / 8.0
-J_ohmic(w) = (2.0 * lamda * omega_c) .* w ./ (abs2.(w) .+ omega_c^2)
+if abspath(PROGRAM_FILE) == @__FILE__
+    omega_c = 1.0
+    lamda = 1.0
+    J_ohmic(w) = (2.0 * lamda * omega_c) .* w ./ (abs2.(w) .+ omega_c^2)
 
-M_modes = 100
-omega_maximum = 20.0 * omega_c
-T_env = omega_c / 5.0
-boson_dim = 10
+    M_modes = 100
+    omega_maximum = 15.0 * omega_c
+    T_env = omega_c * 2.0
+    boson_dim = 10
 
-run_spin_boson_mps(J_ohmic, M_modes, omega_maximum, T_env, boson_dim)
+    run_spin_boson_mps(J_ohmic, M_modes, omega_maximum, T_env, boson_dim)
+end
