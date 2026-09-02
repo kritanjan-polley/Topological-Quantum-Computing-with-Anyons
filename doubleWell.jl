@@ -6,6 +6,9 @@ using CairoMakie
 include("functions.jl")
 using .functions
 
+pic_dir = "pic_dir"
+data_dir = "data_dir"
+
 set_theme!(merge(theme_latexfonts(), custom_theme))
 
 const hbar::Float64 = 6.62607015e-34 / 2pi # J-s
@@ -86,11 +89,11 @@ function main()
     omega_cm = 500.0
     V0_cm = 1500.0
     temperature = length(ARGS) >= 1 ? parse(Float64, ARGS[1]) : 350.0
-    dt::Float64 = 0.5e-15
+    dt::Float64 = 1e-15
     t_max = 180.0e-15
 
-    sk_depth::Int = 4
-    sk_database_length::Int = 12
+    sk_depth::Int = 6
+    sk_database_length::Int = 14
 
     omega_basis = wavenumbers_to_rads(omega_cm)
     V0_joules = hbar * wavenumbers_to_rads(V0_cm)
@@ -135,7 +138,7 @@ function main()
         u_approx, path = solovay_kitaev(u_target, sk_depth, db)
         path = simplify_path(path)
         total_braiding_len += length(path)
-        G_approx = embed(u_approx, nvib_basis, i, j)
+        G_approx = embed(u_approx, nvib_basis, i, j; if_sparse=true)
         compiled_U_step = G_approx * compiled_U_step
     end
     compiled_U_step = compiled_U_step * D_exact
@@ -205,146 +208,9 @@ function main()
     pic_file = joinpath(pic_dir,
         "auto_corr_double_well_$(round(Int, temperature))_plot.pdf")
     save(pic_file, fig)
+    display(fig)
 
     @printf("It took: %.4f seconds\n", time() - start_time)
 end
-#
-# function main()
-#     start_time = time()
-
-#     nvib_basis::Int = 50
-#     omega_cm = 500.0
-#     V0_cm = 1500.0
-#     temperature = length(ARGS) >= 1 ? parse(Float64, ARGS[1]) : 350.0
-#     dt::Float64 = 0.5e-15
-#     t_max = 180.0e-15
-
-#     sk_depth::Int = 4
-#     sk_database_length::Int = 12
-
-#     omega_basis = wavenumbers_to_rads(omega_cm)
-#     V0_joules = hbar * wavenumbers_to_rads(V0_cm)
-#     lambda = (mass^2 * omega_basis^4) / (16.0 * V0_joules)
-#     beta = 1.0 / (kB * temperature)
-#     x_char = get_characteristic_length(omega_basis, mass)
-
-#     @printf("Mass: %.4e kg\n", mass)
-#     @printf("Frequency: %.2e cm inverse\n", omega_cm)
-#     @printf("Char. Length: %.4e a.u.\n", x_char * 1e15 * fs_to_au)
-#     println("Temperature: $(temperature) K")
-#     @printf("Barrier height = %.2e cm inverse\n", V0_cm)
-#     @printf("System size: %d\n", nvib_basis)
-
-#     grid_limit = 30.0 * x_char
-#     @printf("Grid length %.4e a.u.\n", 2.0 * grid_limit / bohr_to_m)
-
-#     N_grid = 1001
-#     x_grid = range(-grid_limit, grid_limit, length=N_grid)
-#     H_grid, X_grid_op, _ = get_hamil_grid(x_grid, m=mass,
-#         omega=omega_basis, lambda=lambda)
-
-#     evals_g, evecs_g = eigen(H_grid)
-#     evals_g .-= minimum(evals_g)
-
-#     probs_g = exp.(-beta .* evals_g)
-#     Z_g = sum(probs_g)
-
-#     probs_half_g = exp.(-beta .* evals_g ./ 2.0)
-#     X_energy_basis = evecs_g' * X_grid_op * evecs_g
-#     X_therm_g = Diagonal(probs_half_g) * X_energy_basis * Diagonal(probs_half_g) ./ Z_g
-
-#     H_basis, _, _, X_basis_op = get_hamil(nvib=nvib_basis, m=mass,
-#         omega=omega_basis, lambda=lambda)
-
-#     U_step_basis = exp(-im * H_basis * dt / hbar)
-
-#     println("Solovay-Kitaev iteration depth $(sk_depth)")
-#     db = generate_database(sk_database_length)
-#     gates_list, D_exact = decompose_unitary(U_step_basis)
-#     compiled_U_step = Matrix{ComplexF64}(I, nvib_basis, nvib_basis)
-#     total_braiding_len::Int = 0
-#     for (i, j, u_target) in reverse(gates_list)
-#         u_approx, path = solovay_kitaev(u_target, sk_depth, db)
-#         path = simplify_path(path)
-#         total_braiding_len += length(path)
-#         G_approx = embed(u_approx, nvib_basis, i, j)
-#         compiled_U_step = G_approx * compiled_U_step
-#     end
-#     compiled_U_step = compiled_U_step * D_exact
-#     overlap = tr(U_step_basis' * compiled_U_step) / nvib_basis
-#     infidelity = 1.0 - abs2(overlap)
-#     @printf("Total braiding sequence length: %d\n", total_braiding_len)
-#     @printf("Braid infidelity: %.4e\n", infidelity)
-
-#     evals_b, evecs_b = eigen(H_basis)
-#     evals_b .-= minimum(evals_b)
-
-#     probs_b = exp.(-beta .* evals_b)
-#     Z_b = sum(probs_b)
-
-#     rho_half_b = evecs_b * Diagonal(sqrt.(probs_b ./ Z_b)) * evecs_b'
-#     A_compiled = rho_half_b * X_basis_op * rho_half_b
-
-#     time_array = range(0.0, t_max, step=dt)
-#     c_t_grid = Vector{ComplexF64}(undef, length(time_array))
-#     c_t_braid = similar(c_t_grid)
-
-#     println("Running time evolution")
-#     for (t_idx, t) in enumerate(time_array)
-#         U_diag = exp.(-im .* evals_g .* t ./ hbar)
-#         X_t = Diagonal(conj.(U_diag)) * X_energy_basis * Diagonal(U_diag)
-#         c_t_grid[t_idx] = tr(X_therm_g * X_t)
-#         c_t_braid[t_idx] = tr(A_compiled * X_basis_op)
-
-#         A_compiled = compiled_U_step * A_compiled * compiled_U_step'
-#     end
-
-#     t_au = time_array .* (1e15 * fs_to_au)
-
-#     c_t_grid = c_t_grid ./ real(c_t_grid[1])
-#     c_t_braid = c_t_braid ./ real(c_t_braid[1])
-
-#     data_file = joinpath(data_dir,
-#         "corr_doublewell_$(round(Int, temperature))_data.txt")
-#     open(data_file, "w") do io
-#         for i in eachindex(t_au)
-#             @printf(io, "%.6e  %.10e  %.10e  %.10e  %.10e\n",
-#                 t_au[i], real(c_t_braid[i]), imag(c_t_braid[i]),
-#                 real(c_t_grid[i]), imag(c_t_grid[i]))
-#         end
-#     end
-
-#     fig = Figure(size=(1200, 400))
-
-#     ax1 = Axis(fig[1, 1],
-#         xlabel=L"t\, (\textrm{a.u.})",
-#         ylabel=L"\textrm{Re}\, C_{xx}(t)",
-#         xtickformat=x -> [@sprintf("%.0f", val) for val in x],)
-#     lines!(ax1, t_au, real.(c_t_grid), label="Exact (DVR)")
-#     lines!(ax1, t_au, real.(c_t_braid), linestyle=:dash, label="Braiding")
-#     axislegend(ax1)
-
-#     ax2 = Axis(fig[1, 2],
-#         xlabel=L"t\, (\textrm{a.u.})",
-#         ylabel=L"\textrm{Im}\, C_{xx}(t)",
-#         xtickformat=x -> [@sprintf("%.0f", val) for val in x],)
-#     lines!(ax2, t_au, imag.(c_t_grid), label="Exact (DVR)")
-#     lines!(ax2, t_au, imag.(c_t_braid), linestyle=:dash, label="Braiding")
-#     # axislegend(ax2)
-
-#     ax3 = Axis(fig[1, 3],
-#         xlabel=L"t\, (\textrm{a.u.})",
-#         ylabel=L"|C_{xx}(t)|",
-#         xtickformat=x -> [@sprintf("%.0f", val) for val in x],)
-#     lines!(ax3, t_au, abs.(c_t_grid), label="Exact (DVR)")
-#     lines!(ax3, t_au, abs.(c_t_braid), linestyle=:dash, label="Braiding")
-#     # axislegend(ax3)
-
-#     pic_file = joinpath(pic_dir,
-#         "auto_corr_double_well_$(round(Int, temperature))_plot.pdf")
-#     save(pic_file, fig)
-
-#     @printf("It took: %.4f seconds\n", time() - start_time)
-# end
 
 main()

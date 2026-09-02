@@ -1,12 +1,12 @@
 using LinearAlgebra
 using Printf
-using StaticArrays
 using CairoMakie
 using LaTeXStrings
-using SparseArrays
 
 include("functions.jl")
 using .functions
+
+pic_dir = "pic_dir"
 #
 # include("functionsIsing.jl")
 # using .functionsIsing
@@ -17,12 +17,12 @@ set_theme!(merge(theme_latexfonts(), custom_theme))
 
 function main()
     start_time = time()
-    N::Int = 3
+    N::Int = 2
     @assert N >= 2
     println("System Size: $N")
 
-    sk_recursion::Int = 3
-    database_length::Int = 13
+    sk_recursion::Int = 8 # max depth
+    database_length::Int = 14
     db::ForwardDB = generate_database(database_length)
 
     if N == 2
@@ -66,7 +66,7 @@ function main()
     full_braiding_sequence = Symbol[]
 
     for (idx, (i, j, u_target)) in enumerate(reverse(gates_list))
-        u_approx, path::Vector{Symbol} = solovay_kitaev(u_target, sk_recursion, db)
+        u_approx, path::Vector{Symbol} = solovay_kitaev(u_target, sk_recursion, db, tol=1e-7)
         path = simplify_path(path)
         total_braids += length(path)
 
@@ -139,9 +139,9 @@ function main()
         Legend(fig[1, 2], ax11, nbanks=1, tellheight=false)
         colsize!(fig.layout, 1, Relative(0.75))
     end
-    save("testBare$(N)LS.pdf", fig)
+    save(joinpath(pic_dir, "testBare$(N)LS.pdf"), fig)
     @printf("Memory at the end: %.6f GB\n", get_peak_memory_bytes() / (1024^3))
-    @printf("It took: %.4f seconds\n", time() - start_time)
+    @printf("It took %.4f seconds\n", time() - start_time)
     return fig
 end
 

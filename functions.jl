@@ -20,19 +20,6 @@ export get_path_from_db, search_base_net, invert_path, simplify_path
 export solovay_kitaev, decompose_unitary, embed
 export to_latex_string
 
-struct PROCESS_MEMORY_COUNTERS
-    cb::UInt32
-    PageFaultCount::UInt32
-    PeakWorkingSetSize::UInt
-    WorkingSetSize::UInt
-    QuotaPeakPagedPoolUsage::UInt
-    QuotaPagedPoolUsage::UInt
-    QuotaPeakNonPagedPoolUsage::UInt
-    QuotaNonPagedPoolUsage::UInt
-    PagefileUsage::UInt
-    PeakPagefileUsage::UInt
-end
-
 struct ForwardDB
     u::Vector{SMatrix{2,2,ComplexF64,4}}
     parent_idx::Vector{Int}

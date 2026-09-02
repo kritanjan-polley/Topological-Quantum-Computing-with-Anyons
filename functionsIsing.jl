@@ -7,7 +7,7 @@ using CairoMakie
 using SparseArrays
 using NearestNeighbors
 
-export PROCESS_MEMORY_COUNTERS, ForwardDB
+export ForwardDB
 export pic_dir, data_dir
 export my_colors, custom_theme
 export F, R, sigma1, sigma2, T_gate, generators, I2comp
@@ -19,18 +19,6 @@ export get_path_from_db, search_base_net, invert_path, simplify_path
 export solovay_kitaev, decompose_unitary, embed
 export to_latex_string
 
-struct PROCESS_MEMORY_COUNTERS
-    cb::UInt32
-    PageFaultCount::UInt32
-    PeakWorkingSetSize::UInt
-    WorkingSetSize::UInt
-    QuotaPeakPagedPoolUsage::UInt
-    QuotaPagedPoolUsage::UInt
-    QuotaPeakNonPagedPoolUsage::UInt
-    QuotaNonPagedPoolUsage::UInt
-    PagefileUsage::UInt
-    PeakPagefileUsage::UInt
-end
 
 struct ForwardDB
     u::Vector{SMatrix{2,2,ComplexF64,4}}
@@ -49,11 +37,6 @@ legendlabelsize = 22
 titlesize = 20
 figure_size = (700, 500)
 const my_colors = cgrad(:glasbey_bw_minc_20_maxl_70_n256, 256, categorical=true)
-
-const pic_dir = joinpath(pwd(), "pic_dir")
-const data_dir = joinpath(pwd(), "data_dir")
-mkpath(data_dir)
-mkpath(pic_dir)
 
 const custom_theme::Attributes = Theme(
     Figure=(size=figure_size,),
@@ -122,44 +105,22 @@ const vz = SVector{3,Float64}(0, 0, 1)
 const latex_replacement_map = Dict(
     :sigma1 => "s_1",
     :sigma2 => "s_2",
-    :Tgate => "S_3",
+    :Tgate => "s_3",
     :sigma1i => "s_1^{-1}",
     :sigma2i => "s_2^{-1}",
     :Tgatei => "s_3^{-1}",
 )
 
-function get_peak_memory_bytes()::Int64
-    if Sys.islinux() || Sys.isapple()
-        rusage = zeros(Int64, 18)
-        ret = ccall(:getrusage, Int32, (Int32, Ptr{Cvoid}), 0, rusage)
-
-        if ret == 0
-            multiplier = Sys.islinux() ? 1024 : 1
-            return rusage[5] * multiplier
-        end
-
-    elseif Sys.iswindows()
-        hProcess = ccall(:GetCurrentProcess, Ptr{Cvoid}, ())
-        mem_counters = Ref(PROCESS_MEMORY_COUNTERS(0, 0, 0, 0, 0, 0, 0, 0, 0, 0))
-        cb = sizeof(PROCESS_MEMORY_COUNTERS)
-
-        ret = ccall((:GetProcessMemoryInfo, "psapi"), Int32,
-            (Ptr{Cvoid}, Ptr{PROCESS_MEMORY_COUNTERS}, UInt32),
-            hProcess, mem_counters, cb)
-
-        if ret != 0
-            return Int(mem_counters[].PeakWorkingSetSize)
-        end
-    end
-    return -1
-end
+get_peak_memory_bytes() = Sys.maxrss()
 
 @inline function su2_distance_sq(u, v)
     val = dot(u, v)
-    return 1.0 - abs(val) * 0.5
+    return 1.0 - abs2(val * 0.5)
 end
 
 @inline function to_r8(U::SMatrix{2,2,ComplexF64,4})
+    phase = det(U)^(-0.5)
+    U = U * phase
     return SVector{8,Float64}(
         real(U[1, 1]), imag(U[1, 1]),
         real(U[1, 2]), imag(U[1, 2]),
@@ -167,6 +128,7 @@ end
         real(U[2, 2]), imag(U[2, 2])
     )
 end
+
 
 function unitary_to_axis_angle(U::SMatrix{2,2,ComplexF64,4})
     phase = det(U)^(-0.5)
@@ -209,7 +171,7 @@ end
 
 function generate_database(depth::Int)
     println("Generating Solovay-Kitaev Instructor set (Length $depth)")
-    est_size::Int = 4 * 3^(depth - 1)
+    est_size::Int = 6 * 3^(depth - 1)
     u = [I2comp]
     parent = [0]
     gen = [0]
@@ -222,7 +184,7 @@ function generate_database(depth::Int)
         current_end = length(u)
         for p_idx in layer_start:current_end
             last_op = gen[p_idx]
-            for i in 1:4
+            for i in 1:6
                 if last_op != 0 && i == inv_idx[last_op]
                     continue
                 end
