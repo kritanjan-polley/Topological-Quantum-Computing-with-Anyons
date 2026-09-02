@@ -213,7 +213,7 @@ function compute_rate(r, R, V; T=300.0, dt=0.05, tmax=3000.0)
     @printf("k(T) = %.12e a.u.\n", k)
     @printf("k(T) = %.12e cm/s\n", kcms)
 
-    open(@sprintf("bkmp2_rate_T_%d.txt", round(Int, T)), "w") do io
+    open(@sprintf("lsth_rate_T_%d.txt", round(Int, T)), "w") do io
         println(io, "# t   Cff   integral")
         for n in eachindex(t)
             @printf(io, "%.8e %.14e %.14e\n", t[n], C[n], out[n])
@@ -230,7 +230,7 @@ T = isempty(ARGS) ? 200.0 : temps[parse(Int, ARGS[1])]
 r = range(0.5, 12.0, length=101)
 R = range(-10.0, 10.0, length=121)
 
-println("Building BKMP2 PES on $(length(r)) x $(length(R)) grid...")
+println("Building lsth PES on $(length(r)) x $(length(R)) grid...")
 V = make_pes(r, R)
 
 @printf("PES minimum = %.10f Eh\n", minimum(V))
