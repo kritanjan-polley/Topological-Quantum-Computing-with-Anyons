@@ -27,8 +27,8 @@ c    if y < last spl.pt., search thru spl.pts
       if(y.ge.10.d0)then
 	 i=n-1
 	 go to 35
-      end if
-c   split spline points into 6 regions and only search the
+      end if  
+c   split spline points into 6 regions and only search the 
 c   appropriate region
       if( y .gt.  7.d0 ) then
 	if(y.le.8.d0)then
@@ -58,12 +58,12 @@ c   appropriate region
       end if
 c    search through a few points for the right one
  0030 continue
-      DO K= i, N
+      DO K= i, N   
          IF( X(K) .GT. Y ) then
 	    i = k - 1
 	    GOTO 35
 	 end if
-      end do
+      end do  
 c--------
 c now that we know the appropriate spline segment, interpolate and
 c find the derivatives
@@ -78,13 +78,13 @@ c find the derivatives
       FLK=xip1  -xati
       ta =xip1  -Y
       ta2=ta*ta
-      ta3=ta*ta2
+      ta3=ta*ta2  
       tb =Y-xati
       tb2=tb*tb
-      tb3=tb*tb2
+      tb3=tb*tb2   
       A=( wmi   * ta3           + wki   * tb3         ) /(6.*FLK)
-      B=(fki  /FLK-wki  *FLK/6.)*  tb
-      C=( fmi /FLK-FLK*wmi  /6.)*  ta
+      B=(fki  /FLK-wki  *FLK/6.)*  tb     
+      C=( fmi /FLK-FLK*wmi  /6.)*  ta       
       TAB(1)=A+B+C
       A=( wki   * tb2         - wmi  * ta2           )/(2.*FLK)
       B=(fki  - fmi )/FLK
@@ -93,7 +93,7 @@ c find the derivatives
       TAB(3)=( wmi  * ta         + wki   * tb       )/FLK
       RETURN
       END
-c
+c     
       subroutine HHPOT(x,s)
 CCC********************************************************* module 11 **
 c  changed from a function to a subroutine on may 9/90
@@ -111,7 +111,7 @@ C
 c------------------------------------------------------- module 20 ----c
 c apr13/95 ... subr. name changed from v to vlsth by wjk
 C CALCULATE THE POTENTIAL (CALLED FROM SUBR.PIP)
-C    TO CALCULATE ONLY THE ENERGY SET ideriv to 0
+C    TO CALCULATE ONLY THE ENERGY SET ideriv to 0 
 C    TO CALCULATE DERIVATIVES AS WELL, SET IT TO 1 or greater
 C    NOTE THIS IS NOT AN OPTIMIZED CODE FROM THE POINT OF VIEW OF
 C    COMPACTNESS OF THE CODING
@@ -127,27 +127,27 @@ C  calculate London energy:
       EF2=EXP(F*X(2))
       EF3=EXP(F*X(3))
 c     r1**2 , r2**2, r3**2
-      X21=X(1)*X(1)
-      X22=X(2)*X(2)
-      X23=X(3)*X(3)
+      X21=X(1)*X(1)    
+      X22=X(2)*X(2)   
+      X23=X(3)*X(3)  
 c     triplet energy for r1     see eq.(10)
-      T1=C*(A+X(1)+A1*X21)/EF1
-      T2=C*(A+X(2)+A1*X22)/EF2
+      T1=C*(A+X(1)+A1*X21)/EF1 
+      T2=C*(A+X(2)+A1*X22)/EF2            
       T3=C*(A+X(3)+A1*X23)/EF3
-      CALL VH2(X,S1,S2,S3,isurf)
+      CALL VH2(X,S1,S2,S3,isurf)       
 c     {singlet energy and derivatives}
 c     see eq.(7)
       XQ1=S1(1)+T1
       XQ2=S2(1)+T2
       XQ3=S3(1)+T3
 c     see eq.(8)
-      XJ1=S1(1)-T1
+      XJ1=S1(1)-T1 
       XJ2=S2(1)-T2
       XJ3=S3(1)-T3
 c     sum of Q values (see eq.(6))
-      XQ=(XQ1+XQ2+XQ3)/2.
-      XJ=SQRT(((XJ1-XJ2)**2+(XJ2-XJ3)**2+(XJ3-XJ1)**2)/8.)
-      ELOND=XQ-XJ
+      XQ=(XQ1+XQ2+XQ3)/2.         
+      XJ=SQRT(((XJ1-XJ2)**2+(XJ2-XJ3)**2+(XJ3-XJ1)**2)/8.) 
+      ELOND=XQ-XJ                                          
 C    ENS
       WNT=(X(1)-X(2))*(X(2)-X(3))*(X(3)-X(1))
       WN=ABS(WNT)
@@ -167,7 +167,7 @@ C
       COS2=(X22-COS)/X(1)/X(3)
       COS3=(X23-COS)/X(1)/X(2)
 c     wb = b1
-      WB=COS1+COS2+COS3+1.
+      WB=COS1+COS2+COS3+1.                
       WB2=WB*WB
       WB3=WB2*WB
       WB4=WB3*WB
@@ -177,16 +177,16 @@ c     wb = b1
       EB1T=(B1+B2*R)/EXF1
       EB3T=(XL1+XL2*R2)/EXF3
 c     eb1 = vb1 + vb5
-      EB1=WB*(EB1T+EB3T)
-      EB2=(WB2*W1+WB3*W2+WB4*W3)/EXF2
+      EB1=WB*(EB1T+EB3T)                                
+      EB2=(WB2*W1+WB3*W2+WB4*W3)/EXF2                  
 c     {EB2=Vb2
-      EQ=(X(1)-X(2))**2+(X(2)-X(3))**2+(X(3)-X(1))**2
+      EQ=(X(1)-X(2))**2+(X(2)-X(3))**2+(X(3)-X(1))**2   
 c     {EQ=B3
-      RI=1./X(1)+1./X(2)+1./X(3)
+      RI=1./X(1)+1./X(2)+1./X(3)                        
 c     {RI=B2
       EB4A=WB*D1/EXF1+WB2*D2/EXF2
       EB4B=D3/EXF1+D4/EXF2
-      EB4=EB4A*RI+EB4B*WB*EQ
+      EB4=EB4A*RI+EB4B*WB*EQ                            
 c     {EB4=Vb3+Vb4
       E=ELOND+ENS+EB1+EB2+EB4
       if(ipr.gt.0)then
@@ -238,7 +238,7 @@ C    WB DERIVATIVES
 C
       WB1P=(X(1)/X(3)-1.)/X(2)-1./X(3)-(COS2+COS3)/X(1)
 c     not used:
-      W23P=(X(3)/X(2)-1.)/X(1)-1./X(2)-(COS1+COS2)/X(3)
+      W23P=(X(3)/X(2)-1.)/X(1)-1./X(2)-(COS1+COS2)/X(3)   
       WB2P=(X(2)/X(3)-1.)/X(1)-1./X(3)-(COS1+COS3)/X(2)
 C
       WB3P=(X(3)/X(2)-1.)/X(1)-1./X(2)-(COS1+COS2)/X(3)
