@@ -1,0 +1,13 @@
+# Kinetic isotope effects in the Mu+H2 and Mu+D2 reactions: 
+# Accurate quantum calculations for the collinear reactions 
+# and variational transition state theory predictions for one and three dimensions
+# D. K. Bondi; D. C. Clary; J. N. L. Connor; Bruce C. Garrett; Donald G. Truhlar
+# J. Chem. Phys. 76, 4986–4995 (1982), https://doi.org/10.1063/1.442845
+200.0   6.20e-2
+250.0   7.72e-1
+300.0   4.81e0
+350.0   1.89e1
+400.0   5.46e1
+600.0   7.26e2
+1000.0  6.68e3
+1500.0  2.22e4

@@ -136,17 +136,17 @@ colsize!(fig.layout, 2, Relative(0.28))
 colsize!(fig.layout, 4, Relative(0.32))
 colgap!(fig.layout, -10)
 
-# save("2LS.pdf", fig)
+save("2LS.pdf", fig)
 
 fig
 
 
 ## double well
 function double_well_pot(x)
-    CM_TO_HARTREE = 4.556335252912e-6
+    cm_to_hartree = 4.556335252912e-6
     mass = 1836.0 # a.u.
-    omega_b = 500.0  * CM_TO_HARTREE# cm-1
-    v0 = 1500.0 * CM_TO_HARTREE # cm-1
+    omega_b = 500.0  * cm_to_hartree# cm-1
+    v0 = 1500.0 * cm_to_hartree # cm-1
     return -0.5 * mass * omega_b^2 * x^2 + mass^2 * omega_b^4/16.0 / v0 * x^4
 end
 
@@ -171,9 +171,9 @@ ax2 = Axis(fig[1,2],
     ylabel=L"C_{xx}(t)")
 
 for (idx, val) in enumerate(temperatures)
-    f1 = readdlm("../data_dir/corr_doublewell_$(round(Int64, val))_data.txt")
-    lines!(ax2, f1[:,1], f1[:,2], color=(colors[idx], 0.5), label=L"\textrm{T}=%$(round(Int,val))\, \textrm{K}")
-    lines!(ax2, f1[:,1], f1[:,4], color=colors[idx], linestyle=:dash)
+    file1 = readdlm(joinpath(base_dir, "corr_doublewell_$(round(Int64, val))_data.txt"))
+    lines!(ax2, file1[:,1], file1[:,2], color=(colors[idx], 0.5), label=L"\textrm{T}=%$(round(Int,val))\, \textrm{K}")
+    lines!(ax2, file1[:,1], file1[:,4], color=colors[idx], linestyle=:dash)
 end
 axislegend(ax2, nbanks=2, orientation=:horizontal,
     labelsize=16, framevisible=true, backgroundcolor=("white", 0.6),
@@ -181,14 +181,13 @@ axislegend(ax2, nbanks=2, orientation=:horizontal,
 
 colsize!(fig.layout, 1, Relative(0.35))
 
-# save("doubleWell.pdf", fig)
+save("doubleWell.pdf", fig)
 
 fig
 
 ### spin-boson model
-f1 = readdlm(joinpath(base_dir, "spin_boson_quapi", "heom_spin_boson_model2.txt"))
-f2 = readdlm(joinpath(base_dir, "spin_boson_quapi", "check_spin_boson_model2.txt"))
-# f2 = readdlm("/Users/kritanjanpolley/Documents/GitHub/Topological-Quantum-Computing-with-Anyons/data_dir/check_spin_boson_model.txt")
+f1 = readdlm(joinpath(base_dir, "heom_spin_boson_model2.txt"))
+f2 = readdlm(joinpath(base_dir, "check_spin_boson_model.txt"))
 
 my_color = :firebrick1
 f3 = readdlm(joinpath(base_dir, "spectra_heom_spin_boson_model2.txt"))
@@ -232,13 +231,13 @@ text!(ax22, (0.05, 0.7),
 
 rowsize!(fig.layout, 1, Auto(0.7))
 
-# save("spinBosonBraid.pdf", fig)
+save("spinBosonBraid.pdf", fig)
 
 fig
 
 #### H + H2 -> H2 + H
-f1 = readdlm(joinpath(pwd(),"collinear_rate_temperature2.txt"), comments=true)
-f2 = readdlm(joinpath(pwd(),"exact_rates_from_paper1.txt"), comments=true)
+f1 = readdlm(joinpath(base_dir, "collinear_rate_temperature2.txt"), comments=true)
+f2 = readdlm(joinpath(base_dir, "exact_rates_from_paper1.txt"), comments=true)
 
 fig = Figure()
 
@@ -277,6 +276,6 @@ ax2 = Axis(fig[1, 1],
 axislegend(ax1)
 linkxaxes!(ax1, ax2)
 
-# save("collinear_rate_h_h2.pdf", fig)
+save("collinear_rate_h_h2.pdf", fig)
 
 fig
