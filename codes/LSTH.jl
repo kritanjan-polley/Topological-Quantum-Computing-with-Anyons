@@ -62,7 +62,7 @@ function build_lsth(; force::Bool=false)
             @info "Compiling LSTH using local gfortran" gfortran
 
             if Sys.isapple()
-                run(`$gfortran -O3 -fPIC -dynamiclib $src_dir -o $lib`)
+                run(`gfortran -O3 -fPIC -dynamiclib $src_dir -o $lib`)
             else
                 run(`$gfortran -O3 -fPIC -shared $src_dir -o $lib`)
             end
