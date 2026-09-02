@@ -111,36 +111,11 @@ latex_replacement_map = Dict(
     :sigma2i => "s_2^{-1}"
 )
 
-function get_peak_memory_bytes()::Int64
-    if Sys.islinux() || Sys.isapple()
-        rusage = zeros(Int64, 18)
-        ret = ccall(:getrusage, Int32, (Int32, Ptr{Cvoid}), 0, rusage)
-
-        if ret == 0
-            # rusage[1-2] = utime, rusage[3-4] = stime, rusage[5] = maxrss
-            multiplier = Sys.islinux() ? 1024 : 1
-            return rusage[5] * multiplier
-        end
-
-    elseif Sys.iswindows()
-        hProcess = ccall(:GetCurrentProcess, Ptr{Cvoid}, ())
-        mem_counters = Ref(PROCESS_MEMORY_COUNTERS(0, 0, 0, 0, 0, 0, 0, 0, 0, 0))
-        cb = sizeof(PROCESS_MEMORY_COUNTERS)
-
-        ret = ccall((:GetProcessMemoryInfo, "psapi"), Int32,
-            (Ptr{Cvoid}, Ptr{PROCESS_MEMORY_COUNTERS}, UInt32),
-            hProcess, mem_counters, cb)
-
-        if ret != 0
-            return Int(mem_counters[].PeakWorkingSetSize)
-        end
-    end
-    return -1
-end
+get_peak_memory_bytes() = Sys.maxrss()
 
 @inline function su2_distance_sq(u, v)
-    val = dot(u, v)
-    return 1.0 - abs(val) * 0.5
+    val = tr(u*v')
+    return 1.0 - abs2(val * 0.5)
 end
 
 @inline function to_r8(U::SMatrix{2,2,ComplexF64,4})
@@ -267,59 +242,12 @@ function solovay_kitaev(U::SMatrix{2,2,ComplexF64,4},
 
     Delta = U * U_prev'
     V, W = GC_decompose(Delta)
-    # _, path_v = solovay_kitaev(V, depth - 1, db; tol=tol)
-    # _, path_w = solovay_kitaev(W, depth - 1, db; tol=tol)
-    # path_next = [path_v; path_w; invert_path(path_v); invert_path(path_w); path_prev]
-    # res_mat = foldl(*, [sym_mapping[s] for s in path_next]; init=I2comp)
     V_approx, path_v = solovay_kitaev(V, depth - 1, db; tol=tol)
     W_approx, path_w = solovay_kitaev(W, depth - 1, db; tol=tol)
     path_next = [path_v; path_w; invert_path(path_v); invert_path(path_w); path_prev]
     res_mat = V_approx * W_approx * V_approx' * W_approx' * U_prev
     return res_mat, path_next
 end
-
-
-# function decompose_unitary2(U_in::AbstractMatrix)
-#     U = U_in isa SparseMatrixCSC ? copy(U_in) : Matrix{ComplexF64}(U_in)
-#     N = size(U, 1)
-#     gates = Tuple{Int,Int,SMatrix{2,2,ComplexF64,4}}[]
-
-#     sizehint!(gates, div(N * (N - 1), 2))
-
-#     @inbounds for j in 1:N-1
-#         for i in j+1:N
-#             a = U[j, j]
-#             b = U[i, j]
-
-#             if abs(b) < 1e-9
-#                 continue
-#             end
-
-#             if abs(a) < 1e-9
-#                 c = 0.0
-#                 s = conj(b) / abs(b)
-#             else
-#                 r = hypot(a, b)
-#                 c = abs(a) / r
-#                 s = (a / abs(a)) * (conj(b) / r)
-#             end
-
-#             for k in j:N
-#                 val_j = U[j, k]
-#                 val_i = U[i, k]
-
-#                 if abs(val_j) > 1e-12 || abs(val_i) > 1e-12
-#                     U[j, k] = c * val_j + s * val_i
-#                     U[i, k] = -conj(s) * val_j + c * val_i
-#                 end
-#             end
-
-#             gate_inv = SMatrix{2,2,ComplexF64}(c, conj(s), -s, c)
-#             push!(gates, (j, i, gate_inv))
-#         end
-#     end
-#     return gates, Diagonal(U)
-# end
 
 function decompose_unitary(U_in::AbstractMatrix)
     U = U_in isa SparseMatrixCSC ? copy(U_in) : Array(U_in)
@@ -440,5 +368,49 @@ function to_latex_string(arr::Vector{Symbol})
     result_strings = [latex_replacement_map[s] for s in arr]
     return join(result_strings, " ")
 end
+
+
+function block_encode(A::AbstractMatrix)
+    n, m = size(A)
+    @assert n == m "Input matrix must be square! (block_encode)"
+
+    alpha = opnorm(A, 2)
+    B = A ./ alpha
+    I_n = Matrix(I, n, n)
+
+    C = sqrt(I_n - B * B')
+    D = sqrt(I_n - B' * B)
+
+    return [B  C; D -B']
+end
+
+function braid_compile_nonunitary(A::AbstractMatrix,
+        db; sk_depth::Int=5, tol::Float64 = 1e-8)
+    U_block = block_encode(A)
+    n, _ = size(U_block)
+    half_size = round(Int64, n/2)
+    gates_list, D_exact = decompose_unitary(U_block)
+
+    compiled_U_step = Matrix{ComplexF64}(I, n, n)
+    full_braiding_sequence = Symbol[]
+
+    for (i, j, u_target) in reverse(gates_list)
+        u_approx, path = solovay_kitaev(u_target,
+                sk_depth, db, tol=tol)
+        append!(full_braiding_sequence, path)
+
+        G_approx = embed(u_approx, n, i, j)
+        compiled_U_step = G_approx * compiled_U_step
+    end
+
+    compiled_U_step = compiled_U_step * D_exact
+    full_braiding_sequence = simplify_path(full_braiding_sequence)
+    total_braids = length(full_braiding_sequence)
+
+    extract_A = compiled_U_step[1:half_size, 1:half_size]
+    return extract_A, total_braids, full_braiding_sequence
+end
+
+
 
 end # module end
