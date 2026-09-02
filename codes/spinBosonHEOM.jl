@@ -4,7 +4,7 @@ using Printf
 
 start_time = time()
 
-data_dir = "data_dir"
+data_dir = "../data_dir"
 
 epsilon = 1.0
 J = 2.0

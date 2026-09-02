@@ -6,7 +6,7 @@ using LaTeXStrings
 include("functions.jl")
 using .functions
 
-pic_dir = "pic_dir"
+pic_dir = "../pic_dir"
 #
 # include("functionsIsing.jl")
 # using .functionsIsing

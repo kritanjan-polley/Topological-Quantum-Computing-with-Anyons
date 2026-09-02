@@ -8,8 +8,8 @@ using .functions
 
 start_time = time()
 
-data_dir = "data_dir"
-pic_dir = "pic_dir"
+data_dir = "../data_dir"
+pic_dir = "../pic_dir"
 
 model = length(ARGS) >= 1 ? strip(ARGS[1]) : "model2"
 @printf("Initial Peak= %.5f GB\n", get_peak_memory_bytes() / (1024^3))

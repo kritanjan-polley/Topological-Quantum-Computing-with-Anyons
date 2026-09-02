@@ -13,8 +13,8 @@ set_theme!(theme_latexfonts())
 const if_plot = true
 const start_time = time()
 
-data_dir = "data_dir"
-pic_dir = "pic_dir"
+data_dir = "../data_dir"
+pic_dir = "../pic_dir"
 
 const n_orb = 8
 const au_to_ev = 27.211386245988

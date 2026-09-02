@@ -7,7 +7,7 @@ include("functions.jl")
 using .functions
 
 start_time = time()
-data_dir = "data_dir"
+data_dir = "../data_dir"
 
 @printf("Initial Peak: %.6f GB\n", get_peak_memory_bytes() / (1024^3))
 

@@ -6,8 +6,7 @@ using Printf
 
 start_time = time()
 
-data_dir = "data_dir"
-
+data_dir = "../data_dir"
 get_peak_memory_bytes() = Sys.maxrss()
 
 @printf("Initial Peak: %.5f GB\n", get_peak_memory_bytes() / (1024^3))

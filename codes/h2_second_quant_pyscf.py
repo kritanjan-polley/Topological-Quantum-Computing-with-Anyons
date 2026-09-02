@@ -4,7 +4,7 @@ import numpy as np
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pyscf import gto, scf, fci, ao2mo, symm
 
-data_dir = "data_dir"
+data_dir = "../data_dir"
 
 def compute_point(args):
     iR, R, basis = args

@@ -6,10 +6,8 @@ using CairoMakie
 include("functions.jl")
 using .functions
 
-pic_dir = "pic_dir"
-data_dir = "data_dir"
-
-set_theme!(merge(theme_latexfonts(), custom_theme))
+pic_dir = "../pic_dir"
+data_dir = "../data_dir"
 
 const hbar::Float64 = 6.62607015e-34 / 2pi # J-s
 const kB::Float64 = 1.380649e-23    # J/K
