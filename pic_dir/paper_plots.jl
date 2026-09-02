@@ -4,7 +4,7 @@ using DelimitedFiles
 using LinearAlgebra
 using FFTW
 
-base_dir = dirname(pwd());
+base_dir = joinpath(dirname(pwd()), "data_dir");
 
 function get_fft(array)
     hbar = 1.0
