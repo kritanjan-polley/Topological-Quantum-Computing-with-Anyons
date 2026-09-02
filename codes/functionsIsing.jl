@@ -8,7 +8,6 @@ using SparseArrays
 using NearestNeighbors
 
 export ForwardDB
-export pic_dir, data_dir
 export my_colors, custom_theme
 export F, R, sigma1, sigma2, T_gate, generators, I2comp
 export gen_syms, sym_mapping, inv_map_sym, inv_idx

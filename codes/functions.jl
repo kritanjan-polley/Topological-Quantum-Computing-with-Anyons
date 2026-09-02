@@ -7,7 +7,7 @@ using CairoMakie
 using SparseArrays
 using NearestNeighbors
 
-export PROCESS_MEMORY_COUNTERS, ForwardDB
+export ForwardDB
 export pic_dir, data_dir
 export my_colors, custom_theme
 export phi, F, R, sigma1, sigma2, generators, I2comp

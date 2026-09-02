@@ -2,6 +2,7 @@ using LinearAlgebra
 using Printf
 using CairoMakie
 using LaTeXStrings
+using SparseArrays
 
 include("functions.jl")
 using .functions
@@ -10,8 +11,6 @@ pic_dir = "../pic_dir"
 #
 # include("functionsIsing.jl")
 # using .functionsIsing
-
-set_theme!(merge(theme_latexfonts(), custom_theme))
 
 @printf("Initial Peak: %.6f GB\n", get_peak_memory_bytes() / (1024^3))
 

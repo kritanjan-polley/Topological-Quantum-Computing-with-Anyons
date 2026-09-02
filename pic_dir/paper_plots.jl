@@ -1,10 +1,12 @@
 using CairoMakie
 using FileIO
-using DelimitedFiles
+using CSV, DataFrames
 using LinearAlgebra
 using FFTW
 
+
 base_dir = joinpath(dirname(pwd()), "data_dir");
+loadtxt(str) = Matrix(CSV.read(str, DataFrame; delim=' ', header=false, ignorerepeated=true))
 
 function get_fft(array)
     hbar = 1.0
@@ -69,8 +71,8 @@ set_theme!(merge(custom_theme, theme_latexfonts()))
 
 
 # 2LS
-f1 = readdlm(joinpath(base_dir, "testBare2LS_fib.txt"))
-f2 = readdlm(joinpath(base_dir, "testBare2LS_ising.txt"))
+f1 = loadtxt(joinpath(base_dir, "testBare2LS_fib.txt"))
+f2 = loadtxt(joinpath(base_dir, "testBare2LS_ising.txt"))
 img2 = load(joinpath(pwd(), "plot-1.png"))
 img3 = load(joinpath(pwd(), "plottwo-1.png"))
 
@@ -171,7 +173,7 @@ ax2 = Axis(fig[1,2],
     ylabel=L"C_{xx}(t)")
 
 for (idx, val) in enumerate(temperatures)
-    file1 = readdlm(joinpath(base_dir, "corr_doublewell_$(round(Int64, val))_data.txt"))
+    file1 = loadtxt(joinpath(base_dir, "corr_doublewell_$(round(Int64, val))_data.txt"))
     lines!(ax2, file1[:,1], file1[:,2], color=(colors[idx], 0.5), label=L"\textrm{T}=%$(round(Int,val))\, \textrm{K}")
     lines!(ax2, file1[:,1], file1[:,4], color=colors[idx], linestyle=:dash)
 end
@@ -186,12 +188,12 @@ save("doubleWell.pdf", fig)
 fig
 
 ### spin-boson model
-f1 = readdlm(joinpath(base_dir, "heom_spin_boson_model2.txt"))
-f2 = readdlm(joinpath(base_dir, "check_spin_boson_model.txt"))
+f1 = loadtxt(joinpath(base_dir, "heom_spin_boson_model2.txt"))
+f2 = loadtxt(joinpath(base_dir, "check_spin_boson_model.txt"))
 
 my_color = :firebrick1
-f3 = readdlm(joinpath(base_dir, "spectra_heom_spin_boson_model2.txt"))
-f4 = readdlm(joinpath(base_dir, "spectra_spin_boson_model2.txt"))
+f3 = loadtxt(joinpath(base_dir, "spectra_heom_spin_boson_model2.txt"))
+f4 = loadtxt(joinpath(base_dir, "spectra_spin_boson_model2.txt"))
 
 fig = Figure(size=(700, 350))
 
@@ -236,11 +238,10 @@ save("spinBosonBraid.pdf", fig)
 fig
 
 #### H + H2 -> H2 + H
-f1 = readdlm(joinpath(base_dir, "collinear_rate_temperature2.txt"), comments=true)
-f2 = readdlm(joinpath(base_dir, "exact_rates_from_paper1.txt"), comments=true)
+f1 = loadtxt(joinpath(base_dir, "collinear_rate_temperature2.txt"), comments=true)
+f2 = loadtxt(joinpath(base_dir, "exact_rates_from_paper1.txt"), comments=true)
 
 fig = Figure()
-
 ax1 = Axis(fig[1, 1],
     xlabel = L"1000/T",
     ylabel = L"k(T)\,(\mathrm{cm}\,\mathrm{molecule}^{-1} \mathrm{s}^{-1})",

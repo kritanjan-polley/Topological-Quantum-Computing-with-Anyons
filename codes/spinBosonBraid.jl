@@ -15,6 +15,10 @@ const kB = 1.0
 const tensor_cutoff = 1e-7
 const max_bond_dim::Int64 = 128
 
+const pauliX::Matrix{ComplexF64} = [0.0 1.0; 1.0 0.0]
+const pauliZ::Matrix{ComplexF64} = [1.0 0.0; 0.0 -1.0]
+const i2::Matrix{ComplexF64} = [1.0 0.0; 0.0 1.0]
+
 ITensors.op(::OpName"Z", ::SiteType"Site") = pauliZ
 
 function star_to_chain(omegas, couplings)

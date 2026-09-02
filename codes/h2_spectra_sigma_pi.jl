@@ -1,6 +1,6 @@
 using LinearAlgebra
 using Printf
-using DelimitedFiles
+using CSV, DataFrames
 using FFTW
 using CairoMakie
 
@@ -12,6 +12,8 @@ set_theme!(theme_latexfonts())
 
 const if_plot = true
 const start_time = time()
+
+loadtxt(str) = Matrix(CSV.read(str, DataFrame; delim=' ', header=false, ignorerepeated=true))
 
 data_dir = "../data_dir"
 pic_dir = "../pic_dir"
@@ -142,12 +144,12 @@ function get_fft(array)
     return freq, fft_exact, fft_hs
 end
 
-const h2_table = readdlm(joinpath(data_dir, "h2_matrix_elements.txt"), comments=true)
-const U_table = readdlm(joinpath(data_dir, "U_matrix_elements.txt"), comments=true)
-const h4_table = readdlm(joinpath(data_dir, "h4_matrix_elements.txt"), comments=true)
-const mux_table = readdlm(joinpath(data_dir, "mux_matrix_elements.txt"), comments=true)
-const muy_table = readdlm(joinpath(data_dir, "muy_matrix_elements.txt"), comments=true)
-const Enuc_table = readdlm(joinpath(data_dir, "Enuc_matrix_elements.txt"), comments=true)
+const h2_table = loadtxt(joinpath(data_dir, "h2_matrix_elements.txt"), comments=true)
+const U_table = loadtxt(joinpath(data_dir, "U_matrix_elements.txt"), comments=true)
+const h4_table = loadtxt(joinpath(data_dir, "h4_matrix_elements.txt"), comments=true)
+const mux_table = loadtxt(joinpath(data_dir, "mux_matrix_elements.txt"), comments=true)
+const muy_table = loadtxt(joinpath(data_dir, "muy_matrix_elements.txt"), comments=true)
+const Enuc_table = loadtxt(joinpath(data_dir, "Enuc_matrix_elements.txt"), comments=true)
 
 function preprocess_table(table, n_inds)
     dict = Dict{Tuple, Tuple{Vector{Float64}, Vector{Float64}}}()
@@ -548,7 +550,7 @@ function main()
         end
     end
 
-    corr = readdlm("vibronic_correlation_sigma_pi.txt")
+    corr = loadtxt("vibronic_correlation_sigma_pi.txt")
     w, res_exact, res_hs = get_fft(corr)
 
     open("vibronic_corr_fft_sigma_pi.txt", "w") do io
@@ -567,8 +569,8 @@ function main()
         axislegend(ax, framevisible=false)
         save("check_time_domain_sigma_pi.pdf", fig)
 
-        fft_data = readdlm("vibronic_corr_fft_sigma_pi.txt")
-        sticks = readdlm("stick_spectra_sigma_pi.txt")
+        fft_data = loadtxt("vibronic_corr_fft_sigma_pi.txt")
+        sticks = loadtxt("stick_spectra_sigma_pi.txt")
 
         fig = Figure()
         ax = Axis(
