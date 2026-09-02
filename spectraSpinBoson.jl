@@ -1,6 +1,5 @@
 using LinearAlgebra
 using Printf
-using DelimitedFiles
 using ITensorMPS
 using ITensors
 
@@ -9,8 +8,11 @@ using .functions
 
 start_time = time()
 
+data_dir = "data_dir"
+pic_dir = "pic_dir"
+
 model = length(ARGS) >= 1 ? strip(ARGS[1]) : "model2"
-@printf("Initial Peak: %.5f GB\n", get_peak_memory_bytes() / (1024^3))
+@printf("Initial Peak= %.5f GB\n", get_peak_memory_bytes() / (1024^3))
 
 const kB = 1.0
 const tensor_cutoff = 1e-6
@@ -44,8 +46,35 @@ function star_to_chain(omegas, couplings)
     return kappa, Omega, t
 end
 
+function boson_operators(d::Int)
+    a = zeros(Float64, d, d)
+    for n in 1:(d-1)
+        a[n, n+1] = sqrt(n)
+    end
+    I_d = Matrix{Float64}(I, d, d)
+    adag = a'
+    N_op = adag * a .+ 0.5 * I_d
+    X_op = adag + a
+    return a, adag, N_op, X_op
+end
+
+function compile_local_unitary(U_exact::Matrix{ComplexF64}, db::ForwardDB,
+    sk_depth::Int)
+    N = size(U_exact, 1)
+    gates_list, D_exact = decompose_unitary(U_exact)
+    compiled_U = Matrix{ComplexF64}(I, N, N)
+
+    for (i, j, u_target) in reverse(gates_list)
+        u_approx, path = solovay_kitaev(u_target, sk_depth, db)
+        G_approx = embed(u_approx, N, i, j)
+        compiled_U = G_approx * compiled_U
+    end
+    return compiled_U * D_exact
+end
+
+
 function map_continuous_bath(J_func::Function, M_chain::Int, omega_max::Float64,
-    temperature::Float64; N_grid::Int=10001)
+    temperature::Float64; N_grid::Int=1001)
     d_omega = 2.0 * omega_max / N_grid
     omegas_dense = range(-omega_max + d_omega / 2, omega_max - d_omega / 2,
         length=N_grid)
@@ -69,12 +98,20 @@ end
 function run_spin_boson_mps(J_func::Function, M::Int,
     omega_max::Float64, temperature::Float64, d::Int=4)
 
-    epsilon, Delta = 1.0, 1.0
+    epsilon, Delta = 1.0, 2.0
     mu12, mu13 = 1.0, -0.2
     dt = 0.05
-    t_max = model == "model2" ? 5.0 : 150.0
-    sk_depth = 4
-    db = generate_database(12)
+    t_max = model == "model2" ? 8.0 : 150.0
+    sk_depth = 8
+    db = generate_database(14)
+
+    println("="^30)
+    println("System information\n")
+    println("="^30)
+    @printf("half energy gap, epsilon = %.4f\n", epsilon)
+    @printf("Diabatic couplinbg, J = %.4f\n", Delta)
+    @printf("Total propagation time = %.4f\n", t_max)
+    println("="^30)
 
     kappa, Omega, t_hop = map_continuous_bath(J_func, M, omega_max, temperature)
     sites = [Index(j == 1 ? 3 : d, "Site, n=$j") for j in 1:M+1]
@@ -131,7 +168,7 @@ function run_spin_boson_mps(J_func::Function, M::Int,
     time_array = range(0.0, t_max, step=dt)
     C_t_exact, C_t_comp = ComplexF64[], ComplexF64[]
 
-    println("Running Dual MPS Evolution...")
+    println("Running MPS Evolution with braids")
     for t in time_array
         push!(C_t_exact, inner(psi_ex_ref, apply(mu_op, psi_ex_t)))
         push!(C_t_comp,  inner(psi_cp_ref, apply(mu_op, psi_cp_t)))
@@ -151,29 +188,36 @@ function run_spin_boson_mps(J_func::Function, M::Int,
         end
 
         if floor(t/dt) % 5 == 0
-            @printf("t=%8.3f | Exact D=%4d | Comp D=%4d | Elapsed time=%10.5f\n",
+            @printf("t=%8.3f | Exact D=%4d | Comp D=%4d | Elapsed time=%12.4f\n",
                 t, maxlinkdim(psi_ex_t), maxlinkdim(psi_cp_t), time()-start_time)
 	    flush(stdout)
         end
     end
 
-    data_file = "spectra_spin_boson_$(model).txt"
+    data_file = joinpath(data_dir, "spectra_spin_boson_$(model).txt")
     open(data_file, "w") do io
         for i in eachindex(time_array)
             @printf(io, "%.6e  %.10e  %.10e  %.10e  %.10e\n",
-                time_array[i],
-                real(C_t_exact[i]), imag(C_t_exact[i]),
+                time_array[i], real(C_t_exact[i]), imag(C_t_exact[i]),
                 real(C_t_comp[i]),  imag(C_t_comp[i])
             )
         end
     end
 
     @printf("Memory at the end: %.5f GB\n", get_peak_memory_bytes() / (1024^3))
-    @printf("It took: %.4f seconds\n", time() - start_time)
+    @printf("It took %.4f seconds\n", time() - start_time)
 end
 
 omega_c, lamda = 1.0, (model == "model2" ? 2.0 : 0.125)
 T_env = model == "model2" ? 2.0 : 0.2
 J_ohmic(w) = (2.0 * lamda * omega_c) .* w ./ (abs2.(w) .+ omega_c^2)
+
+println("="^30)
+println("Bath information\n")
+println("="^30)
+@printf("Peak frequency, omega_c = %.4f\n", omega_c)
+@printf("Reorganisation energy, lambda = %.4f\n", lamda)
+@printf("Temperature, T = %.4f\n", T_env)
+println("="^30)
 
 run_spin_boson_mps(J_ohmic, bath_modes, 20.0, T_env, 10)
