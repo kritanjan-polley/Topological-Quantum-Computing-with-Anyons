@@ -21,7 +21,7 @@ const kB::Float64 = BoltzmannConstant.val # 1.380649e-23    # J/K
 const mass::Float64 = ProtonMass.val # 9.1093837139e-31 * 1836.0  # 1836 au in kg
 const j_to_ev::Float64 = uconvert(u"eV", 1u"J").val # 6.241509e18
 const speed_of_light_cm::Float64 = SpeedOfLightInVacuum.val * 100.0 # 2.99792458e10 # cm/s
-const fs_to_au::Float64 = auconvert(1.0u"fs").val #41.341374575751
+const fs_to_au::Float64 = austrip(1.0u"fs") #41.341374575751
 const bohr_to_m::Float64 = BohrRadius.val # 5.29177210544e-11
 
 wavenumbers_to_rads(wn::Float64) = 2pi * speed_of_light_cm * wn

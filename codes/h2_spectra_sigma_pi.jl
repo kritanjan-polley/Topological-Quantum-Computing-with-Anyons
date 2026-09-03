@@ -21,7 +21,7 @@ data_dir = "../data_dir"
 pic_dir = "../pic_dir"
 
 const n_orb = 8
-const au_to_ev = uconvert(u"eV", 1u"hartree").val #27.211386245988
+const au_to_ev = auconvert(u"eV", 1.0).val #27.211386245988
 
 
 function compile_local_unitary(U_exact::Matrix{ComplexF64}, db::ForwardDB,
