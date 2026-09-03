@@ -4,6 +4,8 @@ using CSV, DataFrames
 using FFTW
 using CairoMakie
 
+using Unitful, UnitfulAtomic
+
 include("functions.jl")
 using .functions
 
@@ -19,7 +21,7 @@ data_dir = "../data_dir"
 pic_dir = "../pic_dir"
 
 const n_orb = 8
-const au_to_ev = 27.211386245988
+const au_to_ev = uconvert(u"eV", 1u"hartree").val #27.211386245988
 
 
 function compile_local_unitary(U_exact::Matrix{ComplexF64}, db::ForwardDB,
