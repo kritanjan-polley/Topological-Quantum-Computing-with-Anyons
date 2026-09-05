@@ -11,7 +11,7 @@ include("functions.jl")
 using .functions
 
 # BLAS.set_num_threads(4)
-start_time = time()
+const start_time = time()
 
 @printf("Memory usage = %.3f GB\n", Sys.maxrss()/(1024^3))
 

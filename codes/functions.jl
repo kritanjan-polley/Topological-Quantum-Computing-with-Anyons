@@ -54,7 +54,6 @@ const custom_theme::Attributes = Theme(
         yticklabelsize=ticksize,
         xlabelsize=labelsize,
         ylabelsize=labelsize,
-        xtickformat=x -> [@sprintf("%.1f", val) for val in x],
         markersize=ms,
     ),
     palette=(color=my_colors,),
@@ -91,7 +90,7 @@ const pauliX::Matrix{ComplexF64} = [0.0 1.0; 1.0 0.0]
 const pauliZ::Matrix{ComplexF64} = [1.0 0.0; 0.0 -1.0]
 const numOp::Matrix{ComplexF64} = [0.0 0.0; 0.0 1.0]
 
-latex_replacement_map = Dict(
+const latex_replacement_map = Dict(
     :sigma1 => "s_1",
     :sigma2 => "s_2",
     :sigma1i => "s_1^{-1}",
@@ -262,7 +261,7 @@ function decompose_unitary(U_in::AbstractMatrix)
 end
 
 
-function embed(U2::AbstractMatrix, N::Int, i::Int, j::Int; if_sparse=false)
+function embed(U2::AbstractMatrix, N::Int, i::Int, j::Int; if_sparse::Bool=false)
     if if_sparse
         res = sparse(ComplexF64, I, N, N)
     else

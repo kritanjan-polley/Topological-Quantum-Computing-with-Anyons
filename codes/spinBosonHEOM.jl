@@ -1,6 +1,6 @@
-using QuantumToolbox
 using HierarchicalEOM
 using Printf
+using QuantumToolbox
 
 start_time = time()
 

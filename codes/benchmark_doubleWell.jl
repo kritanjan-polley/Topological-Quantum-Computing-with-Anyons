@@ -2,6 +2,8 @@ using LinearAlgebra
 using Printf
 using StaticArrays
 using CairoMakie
+
+# units
 using PhysicalConstants.CODATA2022
 using Unitful
 using UnitfulAtomic
@@ -64,6 +66,7 @@ function get_hamil_grid(x_grid; m=mass, omega=1.0, lambda=0.0, x_displacement=0.
     T_mat = zeros(Float64, N_grid, N_grid)
     P_mat = zeros(ComplexF64, N_grid, N_grid)
 
+    # colbert-miller
     prefactor_T = hbar^2 / (2.0 * m * dx^2)
     prefactor_P = -im * hbar / dx
 
@@ -87,7 +90,7 @@ function get_hamil_grid(x_grid; m=mass, omega=1.0, lambda=0.0, x_displacement=0.
 end
 
 
-function one_sim(; time_step_fs=1.0, sk_db_len=14, sk_scan_depth=6,
+function single_simulation(; time_step_fs=1.0, sk_db_len=14, sk_scan_depth=6,
     tol_10=8.0, io=io)
     nvib_basis::Int = 50
     omega_cm = 500.0
@@ -251,7 +254,8 @@ function main()
     else
         io = open(track_sheet, "w")
     end
-    one_sim(; time_step_fs=time_step_fs, sk_db_len=sk_db_len, sk_scan_depth=6, tol_10=tol_10, io=io)
+    single_simulation(; time_step_fs=time_step_fs, sk_db_len=sk_db_len, sk_scan_depth=6,
+             tol_10=tol_10, io=io)
     @printf("Done: t=%.2f fs, database len = %d, tol = 10^(%d) after %.5f seconds\n",
         time_step_fs, sk_db_len, round(Int64, tol_10), time() - start_time)
     close(io)

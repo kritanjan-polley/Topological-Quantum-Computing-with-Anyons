@@ -4,39 +4,39 @@ using LinearAlgebra
 using SparseArrays
 using Printf
 
-start_time = time()
+const start_time = time()
 
-data_dir = "../data_dir"
+const data_dir = "../data_dir"
 get_peak_memory_bytes() = Sys.maxrss()
 
 @printf("Initial Peak: %.5f GB\n", get_peak_memory_bytes() / (1024^3))
 
-model = length(ARGS) >= 1 ? strip(ARGS[1]) : "model2"
+const model = length(ARGS) >= 1 ? strip(ARGS[1]) : "model2"
 println("Computing spectra for $(model)")
-epsilon = 1.0
-jval = 2.0
-mu12 = 1.0
-mu13 = -0.2
-tmax = model == "model2" ? 8.0 : 150.0
-time_step = 0.05
+const epsilon = 1.0
+const jval = 2.0
+const mu12 = 1.0
+const mu13 = -0.2
+const tmax = model == "model2" ? 8.0 : 150.0
+const time_step = 0.05
 
-omega_c = 1.0
-lamda = model == "model2" ? 2.0 * omega_c : 0.125 * omega_c
-kT = model == "model2" ? 2.0 * omega_c : 0.2 * omega_c
+const omega_c = 1.0
+const lamda = model == "model2" ? 2.0 * omega_c : 0.125 * omega_c
+const kT = model == "model2" ? 2.0 * omega_c : 0.2 * omega_c
 
-Hsys = Qobj(sparse([
+const Hsys = Qobj(sparse([
     0.0     0.0     0.0;
     0.0     epsilon jval;
     0.0     jval    -epsilon
 ]))
 
-Q = Qobj(sparse([
+const Q = Qobj(sparse([
     0.0     0.0     0.0;
     0.0     1.0     0.0;
     0.0     0.0    -1.0
 ]))
 
-N = 4
+const N = 4
 bath = Boson_DrudeLorentz_Pade(Q, lamda, omega_c, kT, N)
 tier = 6
 L = M_Boson(Hsys, tier, bath)

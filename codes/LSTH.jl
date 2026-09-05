@@ -36,9 +36,7 @@ function build_lsth(; force::Bool=false)
         gcc_image = get(ENV, "GCC_IMAGE", "")
 
         if !isempty(gcc_image)
-            isfile(gcc_image) || error(
-                "GCC_IMAGE points to a file that does not exist: $gcc_image"
-            )
+            isfile(gcc_image) || error("GCC_IMAGE points to a file that does not exist: $gcc_image")
 
             @info "Compiling LSTH using Apptainer" gcc_image
 
@@ -74,12 +72,8 @@ function build_lsth(; force::Bool=false)
     end
 
     _handle[] = Libdl.dlopen(lib)
-
     sym = Libdl.dlsym_e(_handle[], :vlsth_)
-    sym == C_NULL && error(
-        "Could not find Fortran symbol vlsth_ in $lib"
-    )
-
+    sym == C_NULL && error("Could not find Fortran symbol vlsth_ in $lib")
     _symbol[] = sym
 
     return lib
@@ -135,7 +129,6 @@ function lsth_collinear(
     end
 
     V, d = lsth(x, y, x + y; derivatives=true)
-
     # Vcol(x,y) = V(x,y,x+y)
     dVdx = d[1] + d[3]
     dVdy = d[2] + d[3]
@@ -143,6 +136,7 @@ function lsth_collinear(
     return V, (dVdx, dVdy)
 end
 
+# check function
 function validate_lsth()
     build_lsth()
 
@@ -152,7 +146,7 @@ function validate_lsth()
     rH2 = 1.401
     Vasym = lsth(rH2, 20.0, 20.0)
 
-    # Symmetric collinear transition-state region
+    # transition-state region
     rs = 1.757
     Vsad, dsad = lsth(rs, rs, 2rs; derivatives=true)
 
@@ -164,26 +158,18 @@ function validate_lsth()
 
     @printf(
         "TS derivatives      = (% .6e, % .6e, % .6e) Eh/bohr\n",
-        dsad...
-    )
+        dsad...)
 
     # Permutation symmetry test
     V1 = lsth(1.4, 2.0, 2.7)
     V2 = lsth(2.0, 2.7, 1.4)
     V3 = lsth(2.7, 1.4, 2.0)
 
-    @printf(
-        "permutation error   = %.3e Eh\n",
-        maximum(abs.([V1-V2, V1-V3]))
-    )
+    @printf("permutation error   = %.3e Eh\n", maximum(abs.([V1-V2, V1-V3])) )
 
-    # Collinear wrapper check
+    # Collinear wrapper
     Vcol = lsth_collinear(rs, rs)
-
-    @printf(
-        "collinear V         = %.12f Eh\n",
-        Vcol
-    )
+    @printf("collinear V = %.12f Eh\n", Vcol)
 
     return (
         h2_asymptote = Vasym,
@@ -196,7 +182,7 @@ end
 
 end # module
 
-
+# might remov ethis one later
 if abspath(PROGRAM_FILE) == @__FILE__
     using .LSTH
 

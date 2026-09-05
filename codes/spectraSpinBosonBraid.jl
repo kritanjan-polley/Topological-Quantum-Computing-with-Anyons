@@ -6,12 +6,12 @@ using ITensors
 include("functions.jl")
 using .functions
 
-start_time = time()
+const start_time:: Float64 = time()
 
 data_dir = "../data_dir"
 pic_dir = "../pic_dir"
 
-model = length(ARGS) >= 1 ? strip(ARGS[1]) : "model2"
+const model = length(ARGS) >= 1 ? strip(ARGS[1]) : "model2"
 @printf("Initial Peak= %.5f GB\n", get_peak_memory_bytes() / (1024^3))
 
 const kB = 1.0
@@ -168,7 +168,7 @@ function run_spin_boson_mps(J_func::Function, M::Int,
     time_array = range(0.0, t_max, step=dt)
     C_t_exact, C_t_comp = ComplexF64[], ComplexF64[]
 
-    println("Running MPS Evolution with braids")
+    println("Running MPS evolution with braids")
     for t in time_array
         push!(C_t_exact, inner(psi_ex_ref, apply(mu_op, psi_ex_t)))
         push!(C_t_comp,  inner(psi_cp_ref, apply(mu_op, psi_cp_t)))

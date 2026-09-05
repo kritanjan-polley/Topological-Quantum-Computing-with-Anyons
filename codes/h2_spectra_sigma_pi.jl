@@ -9,7 +9,7 @@ using Unitful, UnitfulAtomic
 include("functions.jl")
 using .functions
 
-BLAS.set_num_threads(2)
+# BLAS.set_num_threads(6)
 set_theme!(theme_latexfonts())
 
 const if_plot = true
@@ -24,14 +24,14 @@ const n_orb = 8
 const au_to_ev = auconvert(u"eV", 1.0).val #27.211386245988
 
 
-function compile_local_unitary(U_exact::Matrix{ComplexF64}, db::ForwardDB,
-    sk_depth::Int)
+function compile_local_unitary(U_exact::Matrix{ComplexF64}, sk_depth::Int,
+    db::ForwardDB, tol::Float64)
     N = size(U_exact, 1)
     gates_list, D_exact = decompose_unitary(U_exact)
     compiled_U = Matrix{ComplexF64}(I, N, N)
 
     for (i, j, u_target) in reverse(gates_list)
-        u_approx, path = solovay_kitaev(u_target, sk_depth, db)
+        u_approx, path = solovay_kitaev(u_target, sk_depth, db; tol=tol)
         G_approx = embed(u_approx, N, i, j)
         compiled_U = G_approx * compiled_U
     end
@@ -111,13 +111,13 @@ const h4_ops = [
     for p in 1:n_orb, q in 1:n_orb, r in 1:n_orb, s in 1:n_orb
 ]
 
-const Ttot = 20_000.0
-const dt = 0.025
+const Ttot = 200.0 # 20_000.0 # au
+const dt = 0.025 # au
 const Nslices = Int(round(Ttot / dt))
 
 const n_grid_vib = 128
-const r_min = 0.5
-const r_max = 10.0
+const r_min = 0.5 # bohr
+const r_max = 20.0 # bohr
 const dr = (r_max - r_min) / (n_grid_vib - 1)
 const r_grid = range(r_min, r_max, length=n_grid_vib)
 
@@ -146,12 +146,12 @@ function get_fft(array)
     return freq, fft_exact, fft_hs
 end
 
-const h2_table = loadtxt(joinpath(data_dir, "h2_matrix_elements.txt"), comments=true)
-const U_table = loadtxt(joinpath(data_dir, "U_matrix_elements.txt"), comments=true)
-const h4_table = loadtxt(joinpath(data_dir, "h4_matrix_elements.txt"), comments=true)
-const mux_table = loadtxt(joinpath(data_dir, "mux_matrix_elements.txt"), comments=true)
-const muy_table = loadtxt(joinpath(data_dir, "muy_matrix_elements.txt"), comments=true)
-const Enuc_table = loadtxt(joinpath(data_dir, "Enuc_matrix_elements.txt"), comments=true)
+const h2_table = loadtxt(joinpath(data_dir, "h2_matrix_elements.txt"))
+const U_table = loadtxt(joinpath(data_dir, "U_matrix_elements.txt"))
+const h4_table = loadtxt(joinpath(data_dir, "h4_matrix_elements.txt"))
+const mux_table = loadtxt(joinpath(data_dir, "mux_matrix_elements.txt"))
+const muy_table = loadtxt(joinpath(data_dir, "muy_matrix_elements.txt"))
+const Enuc_table = loadtxt(joinpath(data_dir, "Enuc_matrix_elements.txt"))
 
 function preprocess_table(table, n_inds)
     dict = Dict{Tuple, Tuple{Vector{Float64}, Vector{Float64}}}()
@@ -245,7 +245,7 @@ function build_H4(h4)
         end
     end
 
-    return 0.5 .* (H4 + H4')
+    return 0.5 .* (H4 + H4')# just as a safety
 end
 
 function build_Helec_at_R(R::Float64)
@@ -265,7 +265,7 @@ function build_Helec_at_R(R::Float64)
     end
 
     Helec .+= build_H4(h4)
-    return 0.5 .* (Helec + Helec')
+    return 0.5 .* (Helec + Helec') # just as a safety
 end
 
 E_nuc(R::Float64) = interp_from_table(Enuc_dict, (1,), R)
@@ -289,7 +289,6 @@ end
 function build_total_Hamiltonian()
     H_tot = zeros(ComplexF64, dim_tot, dim_tot)
     I_elec = Matrix{ComplexF64}(I, dim_elec, dim_elec)
-
     H_tot .+= kron(build_T_nuc(), I_elec)
 
     for i in 1:n_grid_vib
@@ -304,7 +303,6 @@ end
 
 function onebody_propagator(u)
     U = zeros(ComplexF64, dim_elec, dim_elec)
-
     for ket in 1:dim_elec
         occ_ket = state_occs[ket]
         for bra in 1:dim_elec
@@ -312,7 +310,6 @@ function onebody_propagator(u)
             U[bra, ket] = det(u[occ_bra, occ_ket])
         end
     end
-
     return U
 end
 
@@ -332,10 +329,7 @@ function Uint_HS_slice(Umat)
         end
     end
 
-    hs_factors = Vector{Tuple{Int, Int, ComplexF64, ComplexF64}}(
-        undef,
-        length(pairs),
-    )
+    hs_factors = Vector{Tuple{Int, Int, ComplexF64, ComplexF64}}(undef, length(pairs))
 
     for (a, (p, q, g)) in enumerate(pairs)
         alpha = -1im * dt * g
@@ -355,7 +349,6 @@ function Uint_HS_slice(Umat)
             term_minus = exp((cc - lam) * n_sum)
             value *= 0.5 * (term_plus + term_minus)
         end
-
         Uint_diag[k] = value
     end
 
@@ -407,7 +400,6 @@ function build_Mu_tot(dict)
     for i in 1:n_grid_vib
         R = r_grid[i]
         mu = get_dipole_integrals(dict, R)
-
         Mu_elec = zeros(ComplexF64, dim_elec, dim_elec)
         for p in 1:n_orb, q in 1:n_orb
             if abs(mu[p, q]) > 1e-12
@@ -422,7 +414,7 @@ function build_Mu_tot(dict)
     return Mu_tot
 end
 
-# Dedicated test function for C_xy(t) + C_yx(t) = 0
+# check if C_xy(t) + C_yx(t) = 0
 function test_cross_terms(Mu_x_tot, Mu_y_tot, psi0, evals, vectors; n_steps=1000)
     println("="^50)
     println("checking cross terms: C_xy(t) + C_yx(t)")
@@ -437,7 +429,6 @@ function test_cross_terms(Mu_x_tot, Mu_y_tot, psi0, evals, vectors; n_steps=1000
     for m in 0:n_steps
         t = m * dt
         phase = exp.((-1im * t) .* evals)
-
         bra_t = vectors * (phase .* c_bra)
         ket_x_t = vectors * (phase .* c_ket_x)
         ket_y_t = vectors * (phase .* c_ket_y)
@@ -513,18 +504,18 @@ function main()
     c_ket_xy_exact = F.vectors' * ket0_xy
 
     sk_depth = 10
-    db = generate_database(14)
-    bra_HS_braid = compile_local_unitary(bra_HS_t, db=db, sk_depth=sk_depth)
+    db = generate_database(15)
+    tol = 1e-8
+    println("Size of the propagator $(size(Ustep_HS_tot))")
+    Ustep_HS_braid = compile_local_unitary(Ustep_HS_tot, sk_depth, db, tol)
 
     @printf("Starting propagation loop after %.4f seconds\n", time()-start_time)
-
     open("vibronic_correlation_sigma_pi.txt", "w") do io
         for m in 0:Nslices
             t = m * dt
 
             mul!(tmp_xy, Mu_tot, ket_xy_HS_t)
-            C_HS = dot(bra_HS_braid, tmp_xy)
-
+            C_HS = dot(bra_HS_t, tmp_xy)
             phase = exp.((-1im * t) .* evals)
             bra_exact_t = F.vectors * (phase .* c_bra_exact)
             ket_xy_exact_t = F.vectors * (phase .* c_ket_xy_exact)
@@ -532,20 +523,18 @@ function main()
             mul!(tmp_xy, Mu_tot, ket_xy_exact_t)
             C_exact = dot(bra_exact_t, tmp_xy)
 
-            if mod(m, 100) == 0
+            if mod(m, 10) == 0
                 @printf("%10.3f  % .8f  % .8f  % .8f  % .8f  %.3e  %.4f\n",
                     t, real(C_HS), real(C_exact), imag(C_HS), imag(C_exact),
-                    abs(C_HS - C_exact), time()-start_time,
-                )
+                    abs(C_HS - C_exact), time()-start_time,)
                 flush(stdout)
             end
 
             @printf(io, "%10.3f  % .12e  % .12e  % .12e  % .12e\n",
-                t, real(C_HS), real(C_exact), imag(C_HS), imag(C_exact),
-            )
+                t, real(C_HS), real(C_exact), imag(C_HS), imag(C_exact),)
 
-            mul!(next_bra, Ustep_HS_tot, bra_HS_t)
-            mul!(next_xy, Ustep_HS_tot, ket_xy_HS_t)
+            mul!(next_bra, Ustep_HS_braid, bra_HS_t)
+            mul!(next_xy, Ustep_HS_braid, ket_xy_HS_t)
 
             bra_HS_t, next_bra = next_bra, bra_HS_t
             ket_xy_HS_t, next_xy = next_xy, ket_xy_HS_t
@@ -565,9 +554,9 @@ function main()
 
     if if_plot
         fig = Figure()
-        ax = Axis(fig[1, 1], xlabel="t (a.u.)", ylabel="C(t)")
-        lines!(ax, corr[:, 1], corr[:, 2], label="Re (Braid)")
-        lines!(ax, corr[:, 1], corr[:, 3], label="Re (exact)")
+        ax = Axis(fig[1, 1], xlabel=L"t (\mathrm{a.u.})", ylabel=L"C(t)")
+        lines!(ax, corr[:, 1], corr[:, 2], label=L"Re\,(\mathrm{Braid})")
+        lines!(ax, corr[:, 1], corr[:, 3], label=L"Re\,(\mathrm{exact})")
         axislegend(ax, framevisible=false)
         save("check_time_domain_sigma_pi.pdf", fig)
 
@@ -592,14 +581,11 @@ function main()
             max_stick = maximum(sticks[:, 2])
             scale = max_stick > 0 ? 0.8 * max_fft / max_stick : 1.0
 
-            segments = [
-                Point2f(x, y)
+            segments = [Point2f(x, y)
                 for i in axes(sticks, 1)
                 for (x, y) in (
-                    (sticks[i, 1], 0.0),
-                    (sticks[i, 1], scale * sticks[i, 2]),
-                )
-            ]
+                    (sticks[i, 1], 0.0), (sticks[i, 1], scale * sticks[i, 2]),
+            )]
             linesegments!(ax, segments, label="Exact sticks")
         end
 

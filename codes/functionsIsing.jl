@@ -48,7 +48,6 @@ const custom_theme::Attributes = Theme(
         yticklabelsize=ticksize,
         xlabelsize=labelsize,
         ylabelsize=labelsize,
-        xtickformat=x -> [@sprintf("%.1f", val) for val in x],
         markersize=ms,
     ),
     palette=(color=my_colors,),
