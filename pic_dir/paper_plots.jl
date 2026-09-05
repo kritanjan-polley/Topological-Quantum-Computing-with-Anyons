@@ -5,8 +5,8 @@ using LinearAlgebra
 using FFTW
 
 
-base_dir = joinpath(dirname(pwd()), "data_dir");
-loadtxt(str) = Matrix(CSV.read(str, DataFrame; delim=' ', header=false, ignorerepeated=true))
+const base_dir = joinpath(dirname(pwd()), "data_dir");
+loadtxt(str; delim= ' ') = Matrix(CSV.read(str, DataFrame; delim=delim, header=false, ignorerepeated=true, comment="#"))
 
 function get_fft(array)
     hbar = 1.0
@@ -76,7 +76,6 @@ f2 = loadtxt(joinpath(base_dir, "testBare2LS_ising.txt"))
 img2 = load(joinpath(pwd(), "plot-1.png"))
 img3 = load(joinpath(pwd(), "plottwo-1.png"))
 
-
 fig = Figure(size=(1550, 350))
 
 ax1 = Axis(fig[1, 1], xlabel=L"t/\hbar", ylabel="Population")
@@ -94,11 +93,9 @@ text!(ax1, 0.1, 0.05; space=:relative, text=L"\epsilon=0.5,\, J=0.6",
 
 axislegend(ax1, "Fibonacci Anyons", nbanks=2, labelsize=18,
     framevisible=true, backgroundcolor=("white", 0.55),
-    framewidth=0.5, framecolor=:gray,
-    )
+    framewidth=0.5, framecolor=:gray,)
 
 image!(ax2, rotr90(img2))
-
 hidedecorations!(ax2)
 hidespines!(ax2)
 
@@ -113,16 +110,13 @@ scatter!(ax3, f2[:,1], f2[:,4], color=my_colors[1], label=L"\rho_{11} (\mathrm{B
 scatter!(ax3, f2[:,1], f2[:,5], color=my_colors[2], label=L"\rho_{22} (\mathrm{Braid})")
 
 text!(ax3, 0.1, 0.05; space=:relative, text=L"\epsilon=0.4,\, J=0.6",
-    align=(:left, :center), fontsize=22,
-)
-
+    align=(:left, :center), fontsize=22,)
 
 axislegend(ax3, "Ising Anyons", nbanks=2, labelsize=18,
     framevisible=true, backgroundcolor=("white", 0.55),
     framewidth=0.5, framecolor=:gray)
 
 image!(ax4, rotr90(img3))
-
 hidedecorations!(ax4)
 hidespines!(ax4)
 
@@ -153,7 +147,6 @@ function double_well_pot(x)
 end
 
 temperatures = range(50.0, 400.0, step=50.0)
-
 colors = cgrad([:blue, :red], categorical=true, length(temperatures))
 
 fig = Figure(size=(900, 350), linewidth=2)
@@ -170,7 +163,8 @@ text!(ax1, 0.5, 0.8, space=:relative,
 
 ax2 = Axis(fig[1,2],
     xlabel=L"t\,(\mathrm{a.u.})",
-    ylabel=L"C_{xx}(t)")
+    ylabel=L"C_{xx}(t)",
+)
 
 for (idx, val) in enumerate(temperatures)
     file1 = loadtxt(joinpath(base_dir, "corr_doublewell_$(round(Int64, val))_data.txt"))
@@ -182,7 +176,6 @@ axislegend(ax2, nbanks=2, orientation=:horizontal,
     framewidth=0.5, framecolor=:gray)
 
 colsize!(fig.layout, 1, Relative(0.35))
-
 save("doubleWell.pdf", fig)
 
 fig
@@ -213,8 +206,6 @@ fft_data = hcat(f4[:,1], f4[:,4], -f4[:,5], f3[:,2], f3[:,3])
 freq, iw_ex, iw_app = get_fft(fft_data)
 
 ax22 = Axis(fig[1,2],
-    xlabelsize=20, ylabelsize=20,
-    xticklabelsize=20, yticklabelsize=20,
     ylabel=L"I(\omega)",
     xlabel=L"\hbar \omega_c",
     yticklabelsvisible=false,
@@ -238,8 +229,8 @@ save("spinBosonBraid.pdf", fig)
 fig
 
 #### H + H2 -> H2 + H
-f1 = loadtxt(joinpath(base_dir, "collinear_rate_temperature2.txt"), comments=true)
-f2 = loadtxt(joinpath(base_dir, "exact_rates_from_paper1.txt"), comments=true)
+f1 = loadtxt(joinpath(base_dir, "collinear_rate_temperature2.txt"), delim='\t')
+f2 = loadtxt(joinpath(base_dir, "exact_rates_from_paper1.txt"))
 
 fig = Figure()
 ax1 = Axis(fig[1, 1],
