@@ -96,29 +96,30 @@ function product_projector_vec(r, R)
     return h
 end
 
-function cff_unitary(H_mat, h_vec, T, E0; dt=0.05, tmax=3000.0)
-    beta = 1.0 / (kB * T)
-    H_shifted = H_mat - E0 * I
-    B = exp(-0.25 * beta * H_shifted)
-    H_h = H_mat .* h_vec'
-    h_H = h_vec .* H_mat
-    F = (im / hbar) .* (H_h .- h_H)
+# cpu version
+# function cff_unitary(H_mat, h_vec, T, E0; dt=0.05, tmax=3000.0)
+#     beta = 1.0 / (kB * T)
+#     H_shifted = H_mat - E0 * I
+#     B = exp(-0.25 * beta * H_shifted)
+#     H_h = H_mat .* h_vec'
+#     h_H = h_vec .* H_mat
+#     F = (im / hbar) .* (H_h .- h_H)
 
-    A0 = B * F * B
-    U_dt = exp(-im * H_mat * (dt / hbar))
-    U_dt_dag = U_dt'
+#     A0 = B * F * B
+#     U_dt = exp(-im * H_mat * (dt / hbar))
+#     U_dt_dag = U_dt'
 
-    t = range(0.0, tmax, step=dt)
-    C = zeros(Float64, length(t))
+#     t = range(0.0, tmax, step=dt)
+#     C = zeros(Float64, length(t))
 
-    A_t = copy(A0)
-    for n in eachindex(t)
-        C[n] = real(tr(A0 * A_t))
-        A_t = U_dt_dag * A_t * U_dt
-    end
+#     A_t = copy(A0)
+#     for n in eachindex(t)
+#         C[n] = real(tr(A0 * A_t))
+#         A_t = U_dt_dag * A_t * U_dt
+#     end
 
-    return t, C
-end
+#     return t, C
+# end
 
 
 function cff_unitary(H, h, T, E0; dt=0.05, tmax=3000.0)
