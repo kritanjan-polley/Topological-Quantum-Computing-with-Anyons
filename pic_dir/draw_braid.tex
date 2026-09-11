@@ -9,6 +9,110 @@
 % pdftoppm can convert pdf -> png
 \begin{document}
 
+%% Fig 1
+\begin{tikzpicture}
+\def\rowsep{1.8}
+\def\labelx{-1.2} 
+\def\labely{0.5}
+\def\labeldist{0pt}
+
+
+\node (B11) at (0,0) {
+    \begin{tikzpicture}
+    \pic [rotate=90, braid/.cd,
+        width=15pt,
+        number of strands=3,
+        every strand/.style={ultra thick},
+        strand 1/.style={Firebrick2},
+        strand 2/.style={SeaGreen},
+        strand 3/.style={Blue3},
+    ] {braid={s_1 s_2}};
+    \end{tikzpicture}
+};
+
+\node (B12) at (4,0) {
+    \begin{tikzpicture}
+    \pic [rotate=90, braid/.cd,
+        width=15pt,
+        number of strands=3,
+        every strand/.style={ultra thick},
+        strand 1/.style={Firebrick2},
+        strand 2/.style={SeaGreen},
+        strand 3/.style={Blue3},
+    ] {braid={s_2 s_1}};
+    \end{tikzpicture}
+};
+
+\node at ($(B11.east)!0.5!(B12.west)$) {\Large $\neq$};
+\node[below=\labeldist of B11] {$\sigma_1\sigma_2$};
+\node[below=\labeldist of B12] {$\sigma_2\sigma_1$};
+
+\node (B21) at (0,-\rowsep)  {
+    \begin{tikzpicture}
+    \pic [rotate=90, braid/.cd,
+        width=15pt,
+        number of strands=3,
+        every strand/.style={ultra thick},
+        strand 1/.style={Firebrick2},
+        strand 2/.style={SeaGreen},
+        strand 3/.style={Blue3},
+    ] {braid={s_1 s_2 s_1}};
+    \end{tikzpicture}
+};
+
+\node (B22) at (4,-\rowsep) {
+    \begin{tikzpicture}
+    \pic [rotate=90, braid/.cd,
+        width=15pt,
+        number of strands=3,
+        every strand/.style={ultra thick},
+        strand 1/.style={Firebrick2},
+        strand 2/.style={SeaGreen},
+        strand 3/.style={Blue3},
+    ] {braid={s_2 s_1 s_2}};
+    \end{tikzpicture}
+};
+
+\node at ($(B21.east)!0.5!(B22.west)$) {\Large $\equiv$};
+\node[below=\labeldist of B21] {$\sigma_1\sigma_2\sigma_1$};
+\node[below=\labeldist of B22] {$\sigma_2\sigma_1\sigma_2$};
+
+
+\node (B31) at (0,-2*\rowsep) {
+    \begin{tikzpicture}
+    \pic [rotate=90, braid/.cd,
+        width=15pt,
+        number of strands=3,
+        every strand/.style={ultra thick},
+        strand 1/.style={Firebrick2},
+        strand 2/.style={SeaGreen},
+        strand 3/.style={Blue3},
+    ] {braid={s_1 s_1^{-1}}};
+    \end{tikzpicture}
+};
+
+\node (B32) at (4,-2*\rowsep) {
+    \begin{tikzpicture}
+    \pic [rotate=90, braid/.cd,
+        width=15pt,
+        number of strands=3,
+        every strand/.style={ultra thick},
+        strand 1/.style={Firebrick2},
+        strand 2/.style={SeaGreen},
+        strand 3/.style={Blue3},
+    ] {braid={s_1 s_1}};
+    \end{tikzpicture}
+};
+\node[below=\labeldist of B31]{$\sigma_1\sigma_1^{-1} = I$};
+\node[below=\labeldist of B32] {$(\sigma_1)^2 \neq I$};
+
+\node[anchor=east,font=\bfseries] at (\labelx,\labely) {(A)}; \node[anchor=east,font=\bfseries] at (\labelx,{-\rowsep+\labely+0.28}) {(B)}; 
+\node[anchor=east,font=\bfseries] at (\labelx,{-2*\rowsep+\labely}) {(C)};
+
+\draw[->, thick] (0.0,1.0) -- (4.0,1.0) node[right] {time};
+
+\end{tikzpicture}
+
 \begin{tikzpicture}
 
 \begin{scope}[local bounding box=col1]
