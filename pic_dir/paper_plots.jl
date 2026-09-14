@@ -3,8 +3,9 @@ using FileIO
 using CSV, DataFrames
 using LinearAlgebra
 using FFTW
+using Printf
 
-
+const au_to_ev::Float64 = 27.211386245988
 const base_dir = joinpath(dirname(pwd()), "data_dir");
 loadtxt(str; delim= ' ') = Matrix(CSV.read(str, DataFrame; delim=delim, header=false, ignorerepeated=true, comment="#"))
 
@@ -269,5 +270,90 @@ axislegend(ax1)
 linkxaxes!(ax1, ax2)
 
 save("collinear_rate_h_h2.pdf", fig)
+
+fig
+
+
+####### H2 spectra (sigma -> pi)
+#
+function spectrum(array)
+    time_array = array[:, 1]
+    data_hs = array[:, 2] .+ 1im .* array[:, 4]
+    data_exact = array[:, 3] .+ 1im .* array[:, 5]
+
+    target_len = 2^22
+    if length(time_array) < target_len
+        excess = target_len - length(time_array)
+        data_hs = [data_hs; zeros(eltype(data_hs), excess)]
+        data_exact = [data_exact; zeros(eltype(data_exact), excess)]
+    end
+
+    big_len = length(data_hs)
+    delta_t = abs(time_array[2] - time_array[1])
+    freq = sort(fftfreq(big_len) .* (2pi / delta_t))
+
+    fft_exact = real.(fftshift(ifft(data_exact))) .* sqrt(big_len)
+    fft_hs = real.(fftshift(ifft(data_hs))) .* sqrt(big_len)
+
+    return freq, fft_exact, fft_hs
+end
+
+corr = loadtxt(joinpath(base_dir, "vibronic_correlation_sigma_pi.txt"), delim='\t')
+
+t = corr[:, 1]
+
+t_total = t[end] - t[1]
+final_weight = 0.15
+
+gamma = -log(final_weight) / t_total
+window = exp.(-gamma .* (t .- t[1]))
+
+corr_windowed = copy(corr)
+corr_windowed[:, 2:end] .*= window
+w, res_exact, res_hs = spectrum(corr_windowed)
+
+open("vibronic_corr_fft_sigma_pi.txt", "w") do io
+    for i in eachindex(w)
+        @printf(io, "% .12e  % .12e  % .12e\n", w[i], real(res_exact[i]), real(res_hs[i]))
+    end
+end
+
+
+
+fft_data = loadtxt("vibronic_corr_fft_sigma_pi.txt")
+sticks = loadtxt(joinpath(base_dir, "stick_spectra_sigma_pi.txt"))
+
+fig = Figure(linewidth=0.8)
+
+ax = Axis(
+    fig[1, 1],
+    ylabel=L"I (\omega)",
+    xlabel=L"\omega\;(\mathrm{eV})",
+    xlabelsize=22,
+    ylabelsize=22,
+    xticklabelsize=20,
+    yticklabelsize=20,
+)
+
+lines!(ax, fft_data[:, 1] .* au_to_ev, fft_data[:, 2], label=L"I(\omega)\;(\mathrm{Exact})", color="blue")
+lines!(ax, fft_data[:, 1] .* au_to_ev, fft_data[:, 3], label=L"I(\omega)\;(\mathrm{Braid})", linestyle=:dashdot, color="red")
+
+if size(sticks, 1) > 0
+    max_fft = maximum(abs, fft_data[:, 2])
+    max_stick = maximum(sticks[:, 2])
+    scale = max_stick > 0 ? 0.8 * max_fft / max_stick : 1.0
+    segments = [
+        Point2f(x, y)
+        for i in axes(sticks, 1)
+        for (x, y) in ( (sticks[i, 1], 0.0), (sticks[i, 1], scale * sticks[i, 2])  )
+    ]
+    linesegments!(ax, segments, label="Peak Positions", color="black", linewidth=0.8)
+end
+
+xlims!(ax, 12.25, 15.0)
+axislegend(ax, framevisible=false, labelsize=18, patchsize = (40, 20))
+
+save("check_spectra_sigma_pi.pdf", fig)
+rm("vibronic_corr_fft_sigma_pi.txt")
 
 fig
