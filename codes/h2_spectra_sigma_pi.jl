@@ -554,8 +554,7 @@ function main()
     end
 
     h5open("vibronic_correlation_sigma_pi.h5", "w") do f
-        f["data", chunk=(min(size(corr, 1), 10_000), size(corr, 2)),
-                shuffle=(), compress=9] = corr
+        f["data", shuffle=(), compress=9] = Float32.(corr)
     end
 
     rm("vibronic_corr_fft_sigma_pi.txt")
