@@ -4,6 +4,7 @@ using CSV, DataFrames
 using LinearAlgebra
 using FFTW
 using Printf
+using HDF5
 
 const au_to_ev::Float64 = 27.211386245988
 const base_dir = joinpath(dirname(pwd()), "data_dir");
@@ -298,7 +299,7 @@ function spectrum(array)
     return freq, fft_exact, fft_hs
 end
 
-corr = loadtxt(joinpath(base_dir, "vibronic_correlation_sigma_pi.txt"), delim='\t')
+corr = h5read(joinpath(base_dir, "vibronic_correlation_sigma_pi.h5"), "data")
 
 t = corr[:, 1]
 
