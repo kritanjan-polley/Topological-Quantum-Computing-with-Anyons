@@ -3,6 +3,7 @@ using Printf
 using CSV, DataFrames
 using FFTW
 using CairoMakie
+using HDF5
 
 using Unitful, UnitfulAtomic
 
@@ -551,6 +552,13 @@ function main()
             )
         end
     end
+
+    h5open("vibronic_correlation_sigma_pi.h5", "w") do f
+        f["data", chunk=(min(size(corr, 1), 10_000), size(corr, 2)),
+                shuffle=(), compress=9] = corr
+    end
+
+    rm("vibronic_corr_fft_sigma_pi.txt")
 
     if if_plot
         fig = Figure()
