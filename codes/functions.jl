@@ -69,7 +69,7 @@ const custom_theme::Attributes = Theme(
 
 const phi::Float64 = (1.0 + sqrt(5.0)) * 0.5
 const F = SMatrix{2,2,ComplexF64}(1.0 / phi, 1.0 / sqrt(phi), 1.0 / sqrt(phi), -1.0 / phi)
-const R = SMatrix{2,2,ComplexF64}(exp(-4.0 * im * pi / 5.0), 0.0, 0.0, exp(-2.0 * im * pi / 5.0))
+const R = SMatrix{2,2,ComplexF64}(exp(-4.0 * im * pi / 5.0), 0.0, 0.0, exp(3.0 * im * pi / 5.0))
 
 const sigma1 = R
 const sigma2 = inv(F) * R * F
